@@ -1,21 +1,21 @@
+mod ws_interpreter;
+
 use std::{
     fs::File,
     io::{self, BufRead},
 };
+use ws_interpreter::WSInterpreter;
 
-fn main() {
-    let args: Vec<String> = std::env::args().collect();
-    let path = &args[1];
+fn main() -> io::Result<()> {
+    let path: String = std::env::args().nth(1).unwrap();
 
-    if let Ok(lines) = read_lines(&path) {
-        for line in lines.map_while(Result::ok) {
-            println!("{}", line);
-            println!("bam");
-        }
-    }
+    let file = File::open(path)?;
+    let reader = io::BufReader::new(file).lines(); 
+    let mut wsi = WSInterpreter::new(reader);
+    Ok(())
 }
 
-fn read_lines(filename: &str) -> io::Result<io::Lines<io::BufReader<File>>> {
-    let file = File::open(filename)?;
-    Ok(io::BufReader::new(file).lines())
-}
+// fn read_lines(filename: &str) -> io::Result<io::Lines<io::BufReader<File>>> {
+//     let file = File::open(filename)?;
+//     Ok(io::BufReader::new(file).lines())
+// }
