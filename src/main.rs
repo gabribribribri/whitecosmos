@@ -1,17 +1,17 @@
 mod ws_interpreter;
 
-use std::{
-    fs::File,
-    io::{self, BufRead},
-};
+use std::fs::File;
+use std::io;
+
 use ws_interpreter::WSInterpreter;
 
 fn main() -> io::Result<()> {
     let path: String = std::env::args().nth(1).unwrap();
 
     let file = File::open(path)?;
-    let reader = io::BufReader::new(file).lines(); 
+    let reader = io::BufReader::new(file);
     let mut wsi = WSInterpreter::new(reader);
+    wsi.run().unwrap();
     Ok(())
 }
 
