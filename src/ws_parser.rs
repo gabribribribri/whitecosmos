@@ -1,7 +1,7 @@
 use std::io::{self, Read};
 
 use crate::handler::Statement;
-use crate::parser::{ParseError, ParseResult, Parser};
+use crate::parser::{ParseError, ParseErrorArithmetic, ParseErrorFlowCtrl, ParseErrorHeapAccess, ParseErrorIO, ParseErrorStackManip, Parser};
 
 const LF: u8 = 0x6c;
 const TAB: u8 = 0x74;
@@ -18,21 +18,21 @@ pub struct WSParser {
 }
 
 impl Parser for WSParser {
-    fn next_statement(&mut self) -> ParseResult<Statement> {
+    fn next_statement(&mut self) -> Result<Statement, ParseError> {
         loop {
             self.code_index += 1;
             match self.index_char()? {
                 TAB => loop {
                     self.code_index += 1;
                     match self.index_char()? {
-                        TAB => return self.parse_head_access(),
-                        SPACE => return self.parse_arithmetic(),
-                        LF => return self.parse_io(),
+                        TAB => return Ok(self.parse_head_access()?),
+                        SPACE => return Ok(self.parse_arithmetic()?),
+                        LF => return Ok(self.parse_io()?),
                         _ => (),
                     }
                 },
-                SPACE => return self.parse_stack_manipulation(),
-                LF => return self.parse_flow_control(),
+                SPACE => return Ok(self.parse_stack_manipulation()?),
+                LF => return Ok(self.parse_flow_control()?),
                 _ => (),
             }
         }
@@ -49,12 +49,12 @@ impl WSParser {
     }
 
     // WARN This does not support UTF-8 at all. There are possibilities to do very very ugly things..........
-    fn index_char(&mut self) -> ParseResult<u8> {
+    fn index_char(&mut self) -> io::Result<u8> {
         while self.code.len() <= self.code_index {
             let mut trans_buf = [0u8; 512];
             let nb_read = self.reader.read(&mut trans_buf)?;
             if nb_read == 0 {
-                return Err(ParseError::UnexpectedEOF);
+                return Err(io::Error::new(io::ErrorKind::UnexpectedEof, ""));
             }
             self.code.extend_from_slice(&trans_buf[..nb_read]);
         }
@@ -78,7 +78,7 @@ impl WSParser {
     //     }
     // }
 
-    fn parse_io(&mut self) -> ParseResult<Statement> {
+    fn parse_io(&mut self) -> Result<Statement, ParseErrorIO> {
         loop {
             self.code_index += 1;
             match self.index_char()? {
@@ -98,21 +98,21 @@ impl WSParser {
                         _ => (),
                     }
                 },
-                LF => return Err(ParseError::IO),
+                LF => return Err(ParseErrorIO::NotTabNorSpace),
                 _ => (),
             }
         }
     }
 
-    fn parse_stack_manipulation(&mut self) -> ParseResult<Statement> {
+    fn parse_stack_manipulation(&mut self) -> Result<Statement, ParseErrorStackManip> {
         todo!()
     }
 
-    fn parse_arithmetic(&mut self) -> ParseResult<Statement> {
+    fn parse_arithmetic(&mut self) -> Result<Statement, ParseErrorArithmetic> {
         todo!()
     }
 
-    fn parse_flow_control(&mut self) -> ParseResult<Statement> {
+    fn parse_flow_control(&mut self) -> Result<Statement, ParseErrorFlowCtrl> {
         loop {
             self.code_index += 1;
             match self.index_char()? {
@@ -130,7 +130,7 @@ impl WSParser {
                     match self.index_char()? {
                         SPACE => todo!(),
                         TAB => todo!(),
-                        LF => return Err(ParseError::FlowCtrl),
+                        LF => return Err(ParseErrorFlowCtrl::DisallowedCharAfterTab),
                         _ => (),
                     }
                 },
@@ -138,7 +138,7 @@ impl WSParser {
                     self.code_index += 1;
                     match self.index_char()? {
                         LF => return Ok(Statement::EndProgram),
-                        SPACE | TAB => return Err(ParseError::FlowCtrl),
+                        SPACE | TAB => return Err(ParseErrorFlowCtrl::WrongProgramEnd),
                         _ => (),
                     }
                 },
@@ -147,7 +147,7 @@ impl WSParser {
         }
     }
 
-    fn parse_head_access(&mut self) -> ParseResult<Statement> {
+    fn parse_head_access(&mut self) -> Result<Statement, ParseErrorHeapAccess> {
         todo!()
     }
 }
