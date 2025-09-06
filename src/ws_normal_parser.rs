@@ -24,14 +24,14 @@ impl WSParser for WSNormalParser {
                 TAB => loop {
                     self.code_index += 1;
                     match self.index_char()? {
-                        TAB => return self.eval_head_access(),
-                        SPACE => return self.eval_arithmetic(),
-                        LF => return self.eval_io(),
+                        TAB => return self.parse_head_access(),
+                        SPACE => return self.parse_arithmetic(),
+                        LF => return self.parse_io(),
                         _ => (),
                     }
                 },
-                SPACE => return self.eval_stack_manipulation(),
-                LF => return self.eval_flow_control(),
+                SPACE => return self.parse_stack_manipulation(),
+                LF => return self.parse_flow_control(),
                 _ => (),
             }
         }
@@ -60,7 +60,7 @@ impl WSNormalParser {
         Ok(self.code[self.code_index])
     }
 
-    fn eval_io(&mut self) -> WSParseResult<WSStatement> {
+    fn parse_io(&mut self) -> WSParseResult<WSStatement> {
         loop {
             self.code_index += 1;
             match self.index_char()? {
@@ -86,19 +86,19 @@ impl WSNormalParser {
         }
     }
 
-    fn eval_stack_manipulation(&mut self) -> WSParseResult<WSStatement> {
+    fn parse_stack_manipulation(&mut self) -> WSParseResult<WSStatement> {
         todo!()
     }
 
-    fn eval_arithmetic(&mut self) -> WSParseResult<WSStatement> {
+    fn parse_arithmetic(&mut self) -> WSParseResult<WSStatement> {
         todo!()
     }
 
-    fn eval_flow_control(&mut self) -> WSParseResult<WSStatement> {
+    fn parse_flow_control(&mut self) -> WSParseResult<WSStatement> {
         todo!()
     }
 
-    fn eval_head_access(&mut self) -> WSParseResult<WSStatement> {
+    fn parse_head_access(&mut self) -> WSParseResult<WSStatement> {
         todo!()
     }
 }
