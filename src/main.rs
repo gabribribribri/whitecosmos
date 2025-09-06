@@ -1,10 +1,10 @@
-mod ws_handler;
+mod handler;
 
-mod ws_normal_parser;
+mod parser;
 mod ws_parser;
 
-mod ws_direct_runtime;
-mod ws_runtime;
+mod direct_runtime;
+mod runtime;
 
 use std::fs::File;
 use std::io;
@@ -15,10 +15,10 @@ fn main() {
 
     let file = File::open(path).unwrap();
     let reader = io::BufReader::new(file);
-    let parser = ws_normal_parser::WSNormalParser::new(reader);
+    let parser = ws_parser::WSParser::new(reader);
 
-    let runtime = ws_direct_runtime::WSDirectRuntime::new();
+    let runtime = direct_runtime::DirectRuntime::new();
 
-    let handler = ws_handler::WSHandler::new(Box::new(parser), Box::new(runtime));
+    let handler = handler::Handler::new(Box::new(parser), Box::new(runtime));
     handler.run();
 }

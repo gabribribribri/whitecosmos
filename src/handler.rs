@@ -1,13 +1,13 @@
-use crate::{ws_parser::WSParser, ws_runtime::WSRuntime};
+use crate::{parser::Parser, runtime::Runtime};
 
-pub struct WSHandler {
-    parser: Box<dyn WSParser>,
-    runtime: Box<dyn WSRuntime>,
+pub struct Handler {
+    parser: Box<dyn Parser>,
+    runtime: Box<dyn Runtime>,
 }
 
 
-impl WSHandler {
-    pub fn new(parser: Box<dyn WSParser>, runtime: Box<dyn WSRuntime>) -> Self {
+impl Handler {
+    pub fn new(parser: Box<dyn Parser>, runtime: Box<dyn Runtime>) -> Self {
         Self { parser, runtime }
     }
 
