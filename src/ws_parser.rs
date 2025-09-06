@@ -1,6 +1,7 @@
 use std::io::{self, Read};
 
-use crate::parser::{ParseError, ParseResult, Parser, Statement};
+use crate::handler::Statement;
+use crate::parser::{ParseError, ParseResult, Parser};
 
 const LF: u8 = 0x6c;
 const TAB: u8 = 0x74;
@@ -53,12 +54,29 @@ impl WSParser {
             let mut trans_buf = [0u8; 512];
             let nb_read = self.reader.read(&mut trans_buf)?;
             if nb_read == 0 {
-                return Err(ParseError::EOF);
+                return Err(ParseError::UnexpectedEOF);
             }
             self.code.extend_from_slice(&trans_buf[..nb_read]);
         }
         Ok(self.code[self.code_index])
     }
+
+    // fn match_char<'a>(
+    //     &'a mut self,
+    //     tab_fn: Box<dyn Fn() -> ParseResult<Statement>>,
+    //     space_fn: Box<dyn Fn() -> ParseResult<Statement>>,
+    //     lf_fn: Box<dyn Fn() -> ParseResult<Statement>>,
+    // ) -> ParseResult<Statement> {
+    //     loop {
+    //         self.code_index += 1;
+    //         match self.index_char()? {
+    //             TAB => return tab_fn(),
+    //             SPACE => return space_fn(),
+    //             LF => return lf_fn(),
+    //             _ => (),
+    //         }
+    //     }
+    // }
 
     fn parse_io(&mut self) -> ParseResult<Statement> {
         loop {
@@ -95,7 +113,38 @@ impl WSParser {
     }
 
     fn parse_flow_control(&mut self) -> ParseResult<Statement> {
-        todo!()
+        loop {
+            self.code_index += 1;
+            match self.index_char()? {
+                SPACE => loop {
+                    self.code_index += 1;
+                    match self.index_char()? {
+                        SPACE => todo!(),
+                        TAB => todo!(),
+                        LF => todo!(),
+                        _ => (),
+                    }
+                },
+                TAB => loop {
+                    self.code_index += 1;
+                    match self.index_char()? {
+                        SPACE => todo!(),
+                        TAB => todo!(),
+                        LF => return Err(ParseError::FlowCtrl),
+                        _ => (),
+                    }
+                },
+                LF => loop {
+                    self.code_index += 1;
+                    match self.index_char()? {
+                        LF => return Ok(Statement::EndProgram),
+                        SPACE | TAB => return Err(ParseError::FlowCtrl),
+                        _ => (),
+                    }
+                },
+                _ => (),
+            }
+        }
     }
 
     fn parse_head_access(&mut self) -> ParseResult<Statement> {

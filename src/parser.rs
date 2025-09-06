@@ -1,13 +1,9 @@
-
-pub enum Statement {
-    PopStackOutputNumber
-}
-
+use crate::handler::Statement;
 use std::io;
 
 #[derive(Debug)]
 pub enum ParseError {
-    EOF,
+    UnexpectedEOF,
     IMP,
     IO,
     StackManip,
@@ -19,7 +15,7 @@ pub enum ParseError {
 
 impl std::fmt::Display for ParseError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", &self)
+        write!(f, "Parse > {:?}", &self)
     }
 }
 
@@ -28,7 +24,7 @@ impl std::error::Error for ParseError {}
 impl From<io::Error> for ParseError {
     fn from(value: io::Error) -> Self {
         match value.kind() {
-            io::ErrorKind::UnexpectedEof => Self::EOF,
+            io::ErrorKind::UnexpectedEof => Self::UnexpectedEOF,
             _ => Self::Unknown(value.to_string()),
         }
     }
