@@ -1,21 +1,24 @@
-mod ws_interpreter;
+mod ws_handler;
+
+mod ws_normal_parser;
+mod ws_parser;
+
+mod ws_direct_runtime;
+mod ws_runtime;
 
 use std::fs::File;
 use std::io;
 
-use ws_interpreter::WSInterpreter;
 
-fn main() -> io::Result<()> {
+fn main() {
     let path: String = std::env::args().nth(1).unwrap();
 
-    let file = File::open(path)?;
+    let file = File::open(path).unwrap();
     let reader = io::BufReader::new(file);
-    let mut wsi = WSInterpreter::new(reader);
-    wsi.run().unwrap();
-    Ok(())
-}
+    let parser = ws_normal_parser::WSNormalParser::new(reader);
 
-// fn read_lines(filename: &str) -> io::Result<io::Lines<io::BufReader<File>>> {
-//     let file = File::open(filename)?;
-//     Ok(io::BufReader::new(file).lines())
-// }
+    let runtime = ws_direct_runtime::WSDirectRuntime::new();
+
+    let handler = ws_handler::WSHandler::new(Box::new(parser), Box::new(runtime));
+    handler.run();
+}
