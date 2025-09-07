@@ -1,6 +1,6 @@
 use crate::{
     runtime::{
-        Runtime, RuntimeErrorIO, RuntimeReport, RuntimeResult,
+        Runtime, RuntimeErrorIO, RuntimeErrorStackManip, RuntimeReport, RuntimeResult,
         RuntimeResultArithmetic, RuntimeResultFlowCtrl, RuntimeResultHeapAccess, RuntimeResultIO,
         RuntimeResultStackManip,
     },
@@ -16,10 +16,7 @@ pub struct DirectRuntime {
 
 impl DirectRuntime {
     pub fn new() -> Self {
-        Self {
-            stack: vec![1, 2, 3, 4242],
-            // stack: Vec::new(),
-        }
+        Self { stack: Vec::new() }
     }
 }
 
@@ -41,6 +38,7 @@ impl DirectRuntime {
         use StatementIO::*;
         match stat {
             PopStackOutputNumber => self.pop_stack_output_number(),
+            PopStackOutputChar => self.pop_stack_output_char(),
         }
     }
 
@@ -52,7 +50,15 @@ impl DirectRuntime {
     }
 
     fn run_stack_manip(&mut self, stat: StatementStackManip) -> RuntimeResultStackManip {
-        todo!()
+        use StatementStackManip::*;
+        match stat {
+            Push(i) => self.push_on_stack(i),
+            DuplicateTopItem => self.duplicate_top_stack(),
+            SwapTopTwoItems => self.swap_top_two_stack(),
+            DiscardTopItem => self.discard_top_stack(),
+            CopyNthOnTop(i) => self.copy_nth_top_stack(i),
+            SlideKeepTopItem(i) => self.slide_keep_top_stack(i),
+        }
     }
 
     fn run_arithmetic(&mut self, stat: StatementArithmetic) -> RuntimeResultArithmetic {
@@ -63,7 +69,7 @@ impl DirectRuntime {
         todo!()
     }
 
-    fn pop_stack_output_number(&mut self) -> Result<RuntimeReport, RuntimeErrorIO> {
+    fn pop_stack_output_number(&mut self) -> RuntimeResultIO {
         // Should we pop the last element ?
         match self.stack.pop() {
             Some(i) => {
@@ -72,5 +78,77 @@ impl DirectRuntime {
             }
             None => Err(RuntimeErrorIO::ReadEmptyStack),
         }
+    }
+
+    fn pop_stack_output_char(&mut self) -> RuntimeResultIO {
+        match self.stack.pop() {
+            Some(i) => match char::from_u32(i as u32) {
+                Some(c) => {
+                    print!("{c}");
+                    Ok(RuntimeReport::Next)
+                }
+                None => Err(RuntimeErrorIO::InvalidUTF8Character),
+            },
+            None => Err(RuntimeErrorIO::ReadEmptyStack),
+        }
+    }
+
+    fn push_on_stack(&mut self, i: i32) -> RuntimeResultStackManip {
+        self.stack.push(i);
+        Ok(RuntimeReport::Next)
+    }
+
+    fn duplicate_top_stack(&mut self) -> RuntimeResultStackManip {
+        match self.stack.last_mut() {
+            Some(i) => {
+                *i *= 2;
+                Ok(RuntimeReport::Next)
+            }
+            None => Err(RuntimeErrorStackManip::EmptyStack),
+        }
+    }
+
+    fn swap_top_two_stack(&mut self) -> RuntimeResultStackManip {
+        if self.stack.len() < 2 {
+            return Err(RuntimeErrorStackManip::StackTooSmall);
+        }
+
+        let len = self.stack.len();
+        (self.stack[len - 1], self.stack[len - 2]) = (self.stack[len - 2], self.stack[len - 1]);
+        Ok(RuntimeReport::Next)
+    }
+
+    fn discard_top_stack(&mut self) -> RuntimeResultStackManip {
+        match self.stack.pop() {
+            Some(_) => Ok(RuntimeReport::Next),
+            None => Err(RuntimeErrorStackManip::EmptyStack),
+        }
+    }
+
+    fn copy_nth_top_stack(&mut self, i: i32) -> RuntimeResultStackManip {
+        if i < 1 {
+            return Err(RuntimeErrorStackManip::NotInStackRange);
+        }
+
+        let i = i as usize;
+
+        if i > self.stack.len() {
+            return Err(RuntimeErrorStackManip::NotInStackRange);
+        }
+
+        self.stack.push(self.stack[i-1]);
+        Ok(RuntimeReport::Next)
+    }
+
+    fn slide_keep_top_stack(&mut self, i: i32) -> RuntimeResultStackManip {
+        let last = match self.stack.last() {
+            Some(n) => *n,
+            None => return Err(RuntimeErrorStackManip::EmptyStack),
+        };
+        let i = std::cmp::min(i as usize, self.stack.len() - 1);
+
+        self.stack.truncate(self.stack.len() - i - 1);
+        self.stack.push(last);
+        Ok(RuntimeReport::Next)
     }
 }

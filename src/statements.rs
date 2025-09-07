@@ -15,6 +15,13 @@ pub enum Statement {
 /// 
 #[derive(Copy, Clone)]
 pub enum StatementStackManip {
+    Push(i32),
+    DuplicateTopItem,
+    SwapTopTwoItems,
+    DiscardTopItem,
+    CopyNthOnTop(i32),
+    SlideKeepTopItem(i32)
+    
 }
 #[derive(Copy, Clone)]
 pub enum StatementFlowCtrl {
@@ -30,7 +37,8 @@ pub enum StatementArithmetic {
 }
 #[derive(Copy, Clone)]
 pub enum StatementIO {
-    PopStackOutputNumber
+    PopStackOutputNumber,
+    PopStackOutputChar
 }
 
 ///

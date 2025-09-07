@@ -1,6 +1,9 @@
 use std::io;
 
-use crate::statements::{Statement, StatementArithmetic, StatementFlowCtrl, StatementHeapAccess, StatementIO, StatementStackManip};
+use crate::statements::{
+    Statement, StatementArithmetic, StatementFlowCtrl, StatementHeapAccess, StatementIO,
+    StatementStackManip,
+};
 
 ///
 /// GLOBAL PARSE ERROR
@@ -22,10 +25,11 @@ pub enum ParseErrorIMP {
 }
 pub enum ParseErrorIO {
     UnexpectedEOF,
-    NotTabNorSpace,
+    DisallowedLF,
 }
 pub enum ParseErrorStackManip {
     UnexpectedEOF,
+    DisallowedTab,
 }
 pub enum ParseErrorArithmetic {
     UnexpectedEOF,
@@ -33,7 +37,7 @@ pub enum ParseErrorArithmetic {
 pub enum ParseErrorFlowCtrl {
     UnexpectedEOF,
     WrongProgramEnd,
-    DisallowedCharAfterTab,
+    DisallowedLF,
 }
 pub enum ParseErrorHeapAccess {
     UnexpectedEOF,
@@ -57,13 +61,16 @@ impl std::fmt::Display for ParseError {
                 write!(f, "IO > ")?;
                 match err {
                     ParseErrorIO::UnexpectedEOF => write!(f, "Unexpected EOF"),
-                    ParseErrorIO::NotTabNorSpace => write!(f, "Not a [Tab] nor a [Space]"),
+                    ParseErrorIO::DisallowedLF => write!(f, "[LF] is not a valid command here"),
                 }
             }
             ParseError::StackManip(err) => {
                 write!(f, "Stack Manipulation > ")?;
                 match err {
                     ParseErrorStackManip::UnexpectedEOF => write!(f, "Unexpected EOF"),
+                    ParseErrorStackManip::DisallowedTab => {
+                        write!(f, "[Tab] is not a valid command here")
+                    }
                 }
             }
             ParseError::Arithmetic(err) => {
@@ -77,8 +84,8 @@ impl std::fmt::Display for ParseError {
                 match err {
                     ParseErrorFlowCtrl::UnexpectedEOF => write!(f, "Unexpected EOF"),
                     ParseErrorFlowCtrl::WrongProgramEnd => write!(f, "Wrong Program End"),
-                    ParseErrorFlowCtrl::DisallowedCharAfterTab => {
-                        write!(f, "Character disallowed after a [Tab] here")
+                    ParseErrorFlowCtrl::DisallowedLF => {
+                        write!(f, "[LF] is not a valid command here")
                     }
                 }
             }
@@ -149,10 +156,9 @@ impl_from_for_parse_error!(ParseErrorFlowCtrl, FlowCtrl);
 impl_from_for_parse_error!(ParseErrorArithmetic, Arithmetic);
 impl_from_for_parse_error!(ParseErrorStackManip, StackManip);
 
-
 ///
 /// TYPE ALIASES
-/// 
+///
 pub type ParseResult = Result<Statement, ParseError>;
 pub type ParseResultIO = Result<StatementIO, ParseErrorIO>;
 pub type ParseResultFlowCtrl = Result<StatementFlowCtrl, ParseErrorFlowCtrl>;

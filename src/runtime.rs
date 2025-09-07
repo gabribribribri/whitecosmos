@@ -25,8 +25,13 @@ pub enum RuntimeError {
 ///
 pub enum RuntimeErrorIO {
     ReadEmptyStack,
+    InvalidUTF8Character
 }
-pub enum RuntimeErrorStackManip {}
+pub enum RuntimeErrorStackManip {
+    EmptyStack,
+    StackTooSmall,
+    NotInStackRange
+}
 pub enum RuntimeErrorArithmetic {}
 pub enum RuntimeErrorFlowCtrl {}
 pub enum RuntimeErrorHeapAccess {}
@@ -36,7 +41,44 @@ pub enum RuntimeErrorHeapAccess {}
 ///
 impl std::fmt::Display for RuntimeError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Runtime > {:?}", self)
+        write!(f, "Runtime > ")?;
+
+        use RuntimeError::*;
+        match self {
+            IO(err) => {
+                write!(f, "IO > ")?;
+                match err {
+                    RuntimeErrorIO::ReadEmptyStack => write!(f, "Read Empty Stack"),
+                    RuntimeErrorIO::InvalidUTF8Character => write!(f, "Invalid UTF-8 Character")
+                }
+            },
+            StackManip(err) => {
+                write!(f, "Stack Manipulation > ")?;
+                match err {
+                    RuntimeErrorStackManip::EmptyStack => write!(f, "Empty Stack"),
+                    RuntimeErrorStackManip::StackTooSmall => write!(f, "Stack Too Small"),
+                    RuntimeErrorStackManip::NotInStackRange => write!(f, "Not In Stack Range"),
+                }
+            },
+            Arithmetic(err) => {
+                write!(f, "Arithmetic > ")?;
+                match err {
+                    _ => todo!()
+                }
+            },
+            FlowCtrl(err) => {
+                write!(f, "Flow Control > ")?;
+                match err {
+                    _ => todo!()
+                }
+            },
+            HeapAccess(err) => {
+                write!(f, "Heap Access > ")?;
+                match err {
+                    _ => todo!()
+                }
+            },
+        }
     }
 }
 

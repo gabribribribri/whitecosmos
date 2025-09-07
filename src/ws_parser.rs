@@ -4,7 +4,7 @@ use crate::parser::{
     ParseErrorFlowCtrl, ParseErrorIO, ParseResult, ParseResultArithmetic, ParseResultFlowCtrl,
     ParseResultHeapAccess, ParseResultIO, ParseResultStackManip, Parser,
 };
-use crate::statements::{Statement, StatementFlowCtrl, StatementIO};
+use crate::statements::{Statement, StatementFlowCtrl, StatementIO, StatementStackManip};
 
 const LF: u8 = 0x6c;
 const TAB: u8 = 0x74;
@@ -80,18 +80,42 @@ impl WSParser {
                     self.code_index += 1;
                     match self.index_char()? {
                         TAB => return Ok(StatementIO::PopStackOutputNumber),
-                        SPACE => todo!(),
+                        SPACE => return Ok(StatementIO::PopStackOutputChar),
                         _ => (),
                     }
                 },
-                LF => return Err(ParseErrorIO::NotTabNorSpace),
+                LF => return Err(ParseErrorIO::DisallowedLF),
                 _ => (),
             }
         }
     }
 
     fn parse_stack_manipulation(&mut self) -> ParseResultStackManip {
-        todo!()
+        loop {
+            self.code_index += 1;
+            match self.index_char()? {
+                SPACE => return Ok(StatementStackManip::Push(self.parse_number()?)),
+                LF => loop {
+                    self.code_index +=1;
+                    match self.index_char()? {
+                        SPACE => return Ok(StatementStackManip::DuplicateTopItem),
+                        TAB => return Ok(StatementStackManip::SwapTopTwoItems),
+                        LF => return Ok(StatementStackManip::DiscardTopItem),
+                        _ => ()
+                    }
+                },
+                TAB => loop {
+                    self.code_index +=1;
+                    match self.index_char()? {
+                        SPACE => return Ok(StatementStackManip::CopyNthOnTop(self.parse_number()?)),
+                        LF => return Ok(StatementStackManip::SlideKeepTopItem(self.parse_number()?)),
+                        TAB => return Err(crate::parser::ParseErrorStackManip::DisallowedTab),
+                        _ => (),
+                    }
+                },
+                _ => (),
+            }
+        }
     }
 
     fn parse_arithmetic(&mut self) -> ParseResultArithmetic {
@@ -116,7 +140,7 @@ impl WSParser {
                     match self.index_char()? {
                         SPACE => todo!(),
                         TAB => todo!(),
-                        LF => return Err(ParseErrorFlowCtrl::DisallowedCharAfterTab),
+                        LF => return Err(ParseErrorFlowCtrl::DisallowedLF),
                         _ => (),
                     }
                 },
@@ -135,5 +159,42 @@ impl WSParser {
 
     fn parse_head_access(&mut self) -> ParseResultHeapAccess {
         todo!()
+    }
+
+    fn parse_number(&mut self) -> io::Result<i32> {
+        let is_pos: bool;
+        loop {
+            self.code_index += 1;
+            match self.index_char()? {
+                SPACE => {
+                    is_pos = true;
+                    break;
+                }
+                TAB => {
+                    is_pos = false;
+                    break;
+                }
+                LF => return Ok(0),
+                _ => (),
+            }
+        }
+
+        let mut temp_int = 0;
+
+        loop {
+            self.code_index += 1;
+            match self.index_char()? {
+                SPACE => {
+                    temp_int <<= 1;
+                    temp_int |= 0b1
+                }
+                TAB => temp_int <<= 1,
+                LF => break,
+                _ => (),
+            }
+        }
+
+        temp_int |= 0b0 << 31;
+        if is_pos { Ok(temp_int) } else { Ok(-temp_int) }
     }
 }
