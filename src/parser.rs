@@ -43,36 +43,36 @@ pub enum ParseErrorHeapAccess {
 ///
 impl std::fmt::Display for ParseError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Parsing > ");
+        write!(f, "Parsing > ")?;
 
         match self {
             ParseError::IMP(err) => {
-                write!(f, "IMP > ");
+                write!(f, "IMP > ")?;
                 match err {
                     ParseErrorIMP::UnexpectedEOF => write!(f, "Unexpected EOF"),
                 }
             }
             ParseError::IO(err) => {
-                write!(f, "IO > ");
+                write!(f, "IO > ")?;
                 match err {
                     ParseErrorIO::UnexpectedEOF => write!(f, "Unexpected EOF"),
                     ParseErrorIO::NotTabNorSpace => write!(f, "Not a [Tab] nor a [Space]"),
                 }
             }
             ParseError::StackManip(err) => {
-                write!(f, "Stack Manipulation > ");
+                write!(f, "Stack Manipulation > ")?;
                 match err {
                     ParseErrorStackManip::UnexpectedEOF => write!(f, "Unexpected EOF"),
                 }
             }
             ParseError::Arithmetic(err) => {
-                write!(f, "Arithmetic > ");
+                write!(f, "Arithmetic > ")?;
                 match err {
                     ParseErrorArithmetic::UnexpectedEOF => write!(f, "Unexpected EOF"),
                 }
             }
             ParseError::FlowCtrl(err) => {
-                write!(f, "Flow Control > ");
+                write!(f, "Flow Control > ")?;
                 match err {
                     ParseErrorFlowCtrl::UnexpectedEOF => write!(f, "Unexpected EOF"),
                     ParseErrorFlowCtrl::WrongProgramEnd => write!(f, "Wrong Program End"),
@@ -82,7 +82,7 @@ impl std::fmt::Display for ParseError {
                 }
             }
             ParseError::HeapAccess(err) => {
-                write!(f, "Head Access > ");
+                write!(f, "Head Access > ")?;
                 match err {
                     ParseErrorHeapAccess::UnexpectedEOF => write!(f, "Unexpected EOF"),
                 }
@@ -103,6 +103,18 @@ impl std::error::Error for ParseError {}
 /// CONVERTING LOCAL PARSING ERRORS
 ///  io::Error -> LocalParseError
 ///
+macro_rules! impl_ioerror_for {
+    ($thing:ident) => {
+        impl From<io::Error> for $thing {
+            fn from(value: io::Error) -> Self {
+                match value.kind() {
+                    io::ErrorKind::UnexpectedEof => Self::UnexpectedEOF,
+                    _ => panic!("{}", value),
+                }
+            }
+        }
+    };
+}
 impl From<io::Error> for ParseError {
     fn from(value: io::Error) -> Self {
         match value.kind() {
@@ -111,76 +123,30 @@ impl From<io::Error> for ParseError {
         }
     }
 }
-impl From<io::Error> for ParseErrorIO {
-    fn from(value: io::Error) -> Self {
-        match value.kind() {
-            io::ErrorKind::UnexpectedEof => Self::UnexpectedEOF,
-            _ => panic!("{}", value),
-        }
-    }
-}
-impl From<io::Error> for ParseErrorStackManip {
-    fn from(value: io::Error) -> Self {
-        match value.kind() {
-            io::ErrorKind::UnexpectedEof => Self::UnexpectedEOF,
-            _ => panic!("{}", value),
-        }
-    }
-}
-impl From<io::Error> for ParseErrorHeapAccess {
-    fn from(value: io::Error) -> Self {
-        match value.kind() {
-            io::ErrorKind::UnexpectedEof => Self::UnexpectedEOF,
-            _ => panic!("{}", value),
-        }
-    }
-}
-impl From<io::Error> for ParseErrorFlowCtrl {
-    fn from(value: io::Error) -> Self {
-        match value.kind() {
-            io::ErrorKind::UnexpectedEof => Self::UnexpectedEOF,
-            _ => panic!("{}", value),
-        }
-    }
-}
-impl From<io::Error> for ParseErrorArithmetic {
-    fn from(value: io::Error) -> Self {
-        match value.kind() {
-            io::ErrorKind::UnexpectedEof => Self::UnexpectedEOF,
-            _ => panic!("{}", value),
-        }
-    }
-}
+impl_ioerror_for!(ParseErrorIO);
+impl_ioerror_for!(ParseErrorHeapAccess);
+impl_ioerror_for!(ParseErrorStackManip);
+impl_ioerror_for!(ParseErrorFlowCtrl);
+impl_ioerror_for!(ParseErrorArithmetic);
 
 ///
 /// CONVERTING LOCAL PARSING ERRORS
 ///  LocalParseError -> GlobalParseError
 ///
-impl From<ParseErrorIO> for ParseError {
-    fn from(value: ParseErrorIO) -> Self {
-        Self::IO(value)
-    }
+macro_rules! impl_from_for_parse_error {
+    ($parse_error_thing:ident, $thing:ident) => {
+        impl From<$parse_error_thing> for ParseError {
+            fn from(value: $parse_error_thing) -> Self {
+                Self::$thing(value)
+            }
+        }
+    };
 }
-impl From<ParseErrorHeapAccess> for ParseError {
-    fn from(value: ParseErrorHeapAccess) -> Self {
-        Self::HeapAccess(value)
-    }
-}
-impl From<ParseErrorFlowCtrl> for ParseError {
-    fn from(value: ParseErrorFlowCtrl) -> Self {
-        Self::FlowCtrl(value)
-    }
-}
-impl From<ParseErrorArithmetic> for ParseError {
-    fn from(value: ParseErrorArithmetic) -> Self {
-        Self::Arithmetic(value)
-    }
-}
-impl From<ParseErrorStackManip> for ParseError {
-    fn from(value: ParseErrorStackManip) -> Self {
-        Self::StackManip(value)
-    }
-}
+impl_from_for_parse_error!(ParseErrorIO, IO);
+impl_from_for_parse_error!(ParseErrorHeapAccess, HeapAccess);
+impl_from_for_parse_error!(ParseErrorFlowCtrl, FlowCtrl);
+impl_from_for_parse_error!(ParseErrorArithmetic, Arithmetic);
+impl_from_for_parse_error!(ParseErrorStackManip, StackManip);
 
 ///
 /// Actual trait...
