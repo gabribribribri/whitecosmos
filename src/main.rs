@@ -1,5 +1,7 @@
 mod handler;
 
+mod statements;
+
 mod parser;
 mod ws_parser;
 

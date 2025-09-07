@@ -1,5 +1,6 @@
-use crate::handler::Statement;
 use std::io;
+
+use crate::statements::{Statement, StatementArithmetic, StatementFlowCtrl, StatementHeapAccess, StatementIO, StatementStackManip};
 
 ///
 /// GLOBAL PARSE ERROR
@@ -147,6 +148,17 @@ impl_from_for_parse_error!(ParseErrorHeapAccess, HeapAccess);
 impl_from_for_parse_error!(ParseErrorFlowCtrl, FlowCtrl);
 impl_from_for_parse_error!(ParseErrorArithmetic, Arithmetic);
 impl_from_for_parse_error!(ParseErrorStackManip, StackManip);
+
+
+///
+/// TYPE ALIASES
+/// 
+pub type ParseResult = Result<Statement, ParseError>;
+pub type ParseResultIO = Result<StatementIO, ParseErrorIO>;
+pub type ParseResultFlowCtrl = Result<StatementFlowCtrl, ParseErrorFlowCtrl>;
+pub type ParseResultArithmetic = Result<StatementArithmetic, ParseErrorArithmetic>;
+pub type ParseResultStackManip = Result<StatementStackManip, ParseErrorStackManip>;
+pub type ParseResultHeapAccess = Result<StatementHeapAccess, ParseErrorHeapAccess>;
 
 ///
 /// Actual trait...

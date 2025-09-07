@@ -1,0 +1,53 @@
+///
+/// GLOBAL STATEMENTS
+/// 
+#[derive(Copy, Clone)]
+pub enum Statement {
+    IO(StatementIO),
+    FlowCtrl(StatementFlowCtrl),
+    HeapAccess(StatementHeapAccess),
+    Arithmetic(StatementArithmetic),
+    StackManip(StatementStackManip)
+}
+
+///
+/// LOCAL STATEMENTS
+/// 
+#[derive(Copy, Clone)]
+pub enum StatementStackManip {
+}
+#[derive(Copy, Clone)]
+pub enum StatementFlowCtrl {
+    EndProgram
+}
+#[derive(Copy, Clone)]
+pub enum StatementHeapAccess {
+    
+}
+#[derive(Copy, Clone)]
+pub enum StatementArithmetic {
+    
+}
+#[derive(Copy, Clone)]
+pub enum StatementIO {
+    PopStackOutputNumber
+}
+
+///
+/// CONVERTING LOCAL RUNTIME ERRORS
+///  LocalRuntimeError -> GlobalRuntimeError
+///
+macro_rules! impl_from_for_statements {
+    ($runtime_error_thing:ident, $thing:ident) => {
+        impl From<$runtime_error_thing> for Statement {
+            fn from(value: $runtime_error_thing) -> Self {
+                Self::$thing(value)
+            }
+        }
+    };
+}
+impl_from_for_statements!(StatementIO, IO);
+impl_from_for_statements!(StatementHeapAccess, HeapAccess);
+impl_from_for_statements!(StatementFlowCtrl, FlowCtrl);
+impl_from_for_statements!(StatementArithmetic, Arithmetic);
+impl_from_for_statements!(StatementStackManip, StackManip);

@@ -1,6 +1,5 @@
 use crate::{
-    parser::{ParseError, Parser},
-    runtime::{Runtime, RuntimeAction},
+    parser::{ParseResult, Parser}, runtime::{Runtime, RuntimeReport}, statements::Statement
 };
 
 pub struct Handler {
@@ -10,11 +9,6 @@ pub struct Handler {
     stat_index: usize,
 }
 
-#[derive(Clone, Copy)]
-pub enum Statement {
-    PopStackOutputNumber,
-    EndProgram,
-}
 
 impl Handler {
     pub fn new(parser: Box<dyn Parser>, runtime: Box<dyn Runtime>) -> Self {
@@ -39,13 +33,13 @@ impl Handler {
             };
 
             match action {
-                RuntimeAction::Next => self.stat_index += 1,
-                RuntimeAction::EndProgram => return,
+                RuntimeReport::Next => self.stat_index += 1,
+                RuntimeReport::EndProgram => return,
             }
         }
     }
 
-    fn read_statement(&mut self) -> Result<Statement, ParseError> {
+    fn read_statement(&mut self) -> ParseResult {
         if self.stat_index < self.statements.len() {
             Ok(self.statements[self.stat_index])
         } else if self.stat_index == self.statements.len() {

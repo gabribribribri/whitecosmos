@@ -1,7 +1,10 @@
 use std::io::{self, Read};
 
-use crate::handler::Statement;
-use crate::parser::{ParseError, ParseErrorArithmetic, ParseErrorFlowCtrl, ParseErrorHeapAccess, ParseErrorIO, ParseErrorStackManip, Parser};
+use crate::parser::{
+    ParseErrorFlowCtrl, ParseErrorIO, ParseResult, ParseResultArithmetic, ParseResultFlowCtrl,
+    ParseResultHeapAccess, ParseResultIO, ParseResultStackManip, Parser,
+};
+use crate::statements::{Statement, StatementFlowCtrl, StatementIO};
 
 const LF: u8 = 0x6c;
 const TAB: u8 = 0x74;
@@ -18,21 +21,21 @@ pub struct WSParser {
 }
 
 impl Parser for WSParser {
-    fn next_statement(&mut self) -> Result<Statement, ParseError> {
+    fn next_statement(&mut self) -> ParseResult {
         loop {
             self.code_index += 1;
             match self.index_char()? {
                 TAB => loop {
                     self.code_index += 1;
                     match self.index_char()? {
-                        TAB => return Ok(self.parse_head_access()?),
-                        SPACE => return Ok(self.parse_arithmetic()?),
-                        LF => return Ok(self.parse_io()?),
+                        TAB => return Ok(Statement::HeapAccess(self.parse_head_access()?)),
+                        SPACE => return Ok(Statement::Arithmetic(self.parse_arithmetic()?)),
+                        LF => return Ok(Statement::IO(self.parse_io()?)),
                         _ => (),
                     }
                 },
-                SPACE => return Ok(self.parse_stack_manipulation()?),
-                LF => return Ok(self.parse_flow_control()?),
+                SPACE => return Ok(Statement::StackManip(self.parse_stack_manipulation()?)),
+                LF => return Ok(Statement::FlowCtrl(self.parse_flow_control()?)),
                 _ => (),
             }
         }
@@ -61,24 +64,7 @@ impl WSParser {
         Ok(self.code[self.code_index])
     }
 
-    // fn match_char<'a>(
-    //     &'a mut self,
-    //     tab_fn: Box<dyn Fn() -> ParseResult<Statement>>,
-    //     space_fn: Box<dyn Fn() -> ParseResult<Statement>>,
-    //     lf_fn: Box<dyn Fn() -> ParseResult<Statement>>,
-    // ) -> ParseResult<Statement> {
-    //     loop {
-    //         self.code_index += 1;
-    //         match self.index_char()? {
-    //             TAB => return tab_fn(),
-    //             SPACE => return space_fn(),
-    //             LF => return lf_fn(),
-    //             _ => (),
-    //         }
-    //     }
-    // }
-
-    fn parse_io(&mut self) -> Result<Statement, ParseErrorIO> {
+    fn parse_io(&mut self) -> ParseResultIO {
         loop {
             self.code_index += 1;
             match self.index_char()? {
@@ -93,7 +79,7 @@ impl WSParser {
                 SPACE => loop {
                     self.code_index += 1;
                     match self.index_char()? {
-                        TAB => return Ok(Statement::PopStackOutputNumber),
+                        TAB => return Ok(StatementIO::PopStackOutputNumber),
                         SPACE => todo!(),
                         _ => (),
                     }
@@ -104,15 +90,15 @@ impl WSParser {
         }
     }
 
-    fn parse_stack_manipulation(&mut self) -> Result<Statement, ParseErrorStackManip> {
+    fn parse_stack_manipulation(&mut self) -> ParseResultStackManip {
         todo!()
     }
 
-    fn parse_arithmetic(&mut self) -> Result<Statement, ParseErrorArithmetic> {
+    fn parse_arithmetic(&mut self) -> ParseResultArithmetic {
         todo!()
     }
 
-    fn parse_flow_control(&mut self) -> Result<Statement, ParseErrorFlowCtrl> {
+    fn parse_flow_control(&mut self) -> ParseResultFlowCtrl {
         loop {
             self.code_index += 1;
             match self.index_char()? {
@@ -137,7 +123,7 @@ impl WSParser {
                 LF => loop {
                     self.code_index += 1;
                     match self.index_char()? {
-                        LF => return Ok(Statement::EndProgram),
+                        LF => return Ok(StatementFlowCtrl::EndProgram),
                         SPACE | TAB => return Err(ParseErrorFlowCtrl::WrongProgramEnd),
                         _ => (),
                     }
@@ -147,7 +133,7 @@ impl WSParser {
         }
     }
 
-    fn parse_head_access(&mut self) -> Result<Statement, ParseErrorHeapAccess> {
+    fn parse_head_access(&mut self) -> ParseResultHeapAccess {
         todo!()
     }
 }
