@@ -14,8 +14,9 @@ const SPACE: u8 = 0x73;
 // const SPACE: u8 = 0x20;
 
 pub struct WSParser {
-    code: Vec<u8>,
+    code: [u8; 512],
     // code_index is the LAST READ character. NOT the next one to read
+    code_length: usize,
     code_index: usize,
     reader: io::BufReader<std::fs::File>,
 }
@@ -45,7 +46,8 @@ impl Parser for WSParser {
 impl WSParser {
     pub fn new(reader: io::BufReader<std::fs::File>) -> Self {
         WSParser {
-            code: vec![69],
+            code: [0; 512],
+            code_length: 0,
             code_index: 0,
             reader,
         }
@@ -53,13 +55,13 @@ impl WSParser {
 
     // WARN This does not support UTF-8 at all. There are possibilities to do very very ugly things..........
     fn index_char(&mut self) -> io::Result<u8> {
-        while self.code.len() <= self.code_index {
-            let mut trans_buf = [0u8; 512];
-            let nb_read = self.reader.read(&mut trans_buf)?;
+        if self.code_length <= self.code_index {
+            let nb_read = self.reader.read(&mut self.code)?;
             if nb_read == 0 {
                 return Err(io::Error::new(io::ErrorKind::UnexpectedEof, ""));
             }
-            self.code.extend_from_slice(&trans_buf[..nb_read]);
+            self.code_length = nb_read;
+            self.code_index = 0;
         }
         Ok(self.code[self.code_index])
     }
@@ -96,19 +98,23 @@ impl WSParser {
             match self.index_char()? {
                 SPACE => return Ok(StatementStackManip::Push(self.parse_number()?)),
                 LF => loop {
-                    self.code_index +=1;
+                    self.code_index += 1;
                     match self.index_char()? {
                         SPACE => return Ok(StatementStackManip::DuplicateTopItem),
                         TAB => return Ok(StatementStackManip::SwapTopTwoItems),
                         LF => return Ok(StatementStackManip::DiscardTopItem),
-                        _ => ()
+                        _ => (),
                     }
                 },
                 TAB => loop {
-                    self.code_index +=1;
+                    self.code_index += 1;
                     match self.index_char()? {
-                        SPACE => return Ok(StatementStackManip::CopyNthOnTop(self.parse_number()?)),
-                        LF => return Ok(StatementStackManip::SlideKeepTopItem(self.parse_number()?)),
+                        SPACE => {
+                            return Ok(StatementStackManip::CopyNthOnTop(self.parse_number()?));
+                        }
+                        LF => {
+                            return Ok(StatementStackManip::SlideKeepTopItem(self.parse_number()?));
+                        }
                         TAB => return Err(crate::parser::ParseErrorStackManip::DisallowedTab),
                         _ => (),
                     }
