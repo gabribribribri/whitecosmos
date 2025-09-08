@@ -136,7 +136,7 @@ impl DirectRuntime {
             return Err(RuntimeErrorStackManip::NotInStackRange);
         }
 
-        self.stack.push(self.stack[i-1]);
+        self.stack.push(self.stack[i - 1]);
         Ok(RuntimeReport::Next)
     }
 
