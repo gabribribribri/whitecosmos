@@ -1,7 +1,7 @@
 ///
 /// GLOBAL STATEMENTS
 /// 
-#[derive(Copy, Clone)]
+#[derive(Debug,Copy, Clone)]
 pub enum Statement {
     IO(StatementIO),
     FlowCtrl(StatementFlowCtrl),
@@ -13,7 +13,7 @@ pub enum Statement {
 ///
 /// LOCAL STATEMENTS
 /// 
-#[derive(Copy, Clone)]
+#[derive(Debug,Copy, Clone)]
 pub enum StatementStackManip {
     Push(i32),
     DuplicateTopItem,
@@ -23,19 +23,19 @@ pub enum StatementStackManip {
     SlideKeepTopItem(i32)
     
 }
-#[derive(Copy, Clone)]
+#[derive(Debug,Copy, Clone)]
 pub enum StatementFlowCtrl {
     EndProgram
 }
-#[derive(Copy, Clone)]
+#[derive(Debug,Copy, Clone)]
 pub enum StatementHeapAccess {
     
 }
-#[derive(Copy, Clone)]
+#[derive(Debug,Copy, Clone)]
 pub enum StatementArithmetic {
     
 }
-#[derive(Copy, Clone)]
+#[derive(Debug,Copy, Clone)]
 pub enum StatementIO {
     PopStackOutputNumber,
     PopStackOutputChar

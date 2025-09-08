@@ -190,11 +190,11 @@ impl WSParser {
         loop {
             self.code_index += 1;
             match self.index_char()? {
-                SPACE => {
+                SPACE => temp_int <<= 1,
+                TAB => {
                     temp_int <<= 1;
                     temp_int |= 0b1
                 }
-                TAB => temp_int <<= 1,
                 LF => break,
                 _ => (),
             }
