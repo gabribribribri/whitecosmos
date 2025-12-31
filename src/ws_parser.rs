@@ -14,7 +14,7 @@ const SPACE: u8 = 0x73;
 // const SPACE: u8 = 0x20;
 
 pub struct WSParser {
-    code: [u8; 512],
+    code: [u8; 2048],
     // code_index is the LAST READ character. NOT the next one to read
     code_length: usize,
     code_index: usize,
