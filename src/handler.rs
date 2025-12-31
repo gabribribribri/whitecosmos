@@ -1,26 +1,31 @@
 use crate::{
-    parser::{ParseResult, Parser}, runtime::{Runtime, RuntimeReport}, statements::Statement
+    parser::{ParseResult, Parser},
+    runtime::{Runtime, RuntimeReport},
+    statements::Statement,
 };
 
-pub struct Handler {
-    parser: Box<dyn Parser>,
-    runtime: Box<dyn Runtime>,
+pub struct Handler<P: Parser, R: Runtime> {
+    parser: P,
+    runtime: R,
     statements: Vec<Statement>,
     stat_index: usize,
 }
 
-
-impl Handler {
-    pub fn new(parser: Box<dyn Parser>, runtime: Box<dyn Runtime>) -> Self {
+impl<P: Parser, R: Runtime> Handler<P, R> {
+    pub fn new(parser: P, runtime: R) -> Self {
         Self {
             parser,
             runtime,
             statements: Vec::new(),
-            stat_index: 0
+            stat_index: 0,
         }
     }
 
-    pub fn run(mut self) {
+    pub fn into_parts(self) -> (P, R) {
+        (self.parser, self.runtime)
+    }
+
+    pub fn run(&mut self) {
         loop {
             let statement = match self.read_statement() {
                 Ok(st) => st,
@@ -48,7 +53,7 @@ impl Handler {
                     self.statements.push(st);
                     Ok(st)
                 }
-                Err(e) => Err(e)
+                Err(e) => Err(e),
             }
         } else {
             panic!("This should not happen >:(")
@@ -56,7 +61,7 @@ impl Handler {
     }
 
     fn print_error(&self, err: Box<dyn std::error::Error>) {
-        println!("\nEncountered error on statement {}", self.stat_index+1);
+        println!("\nEncountered error on statement {}", self.stat_index + 1);
         println!("{}\n", err);
     }
 }

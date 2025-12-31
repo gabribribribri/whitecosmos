@@ -1,16 +1,7 @@
-mod handler;
-
-mod statements;
-
-mod parser;
-mod ws_parser;
-
-mod direct_runtime;
-mod runtime;
-
 use std::fs::File;
 use std::io;
 
+use whitecosmos::{direct_runtime, handler, ws_parser};
 
 fn main() {
     let path: String = std::env::args().nth(1).unwrap();
@@ -19,8 +10,8 @@ fn main() {
     let reader = io::BufReader::new(file);
     let parser = ws_parser::WSParser::new(reader);
 
-    let runtime = direct_runtime::DirectRuntime::new();
+    let runtime = direct_runtime::DirectRuntime::new(Box::new(std::io::stdout()));
 
-    let handler = handler::Handler::new(Box::new(parser), Box::new(runtime));
+    let mut handler = handler::Handler::new(parser, runtime);
     handler.run();
 }

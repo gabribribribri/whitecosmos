@@ -1,3 +1,5 @@
+use std::io::Write;
+
 use crate::{
     runtime::{
         Runtime, RuntimeErrorIO, RuntimeErrorStackManip, RuntimeReport, RuntimeResult,
@@ -10,17 +12,21 @@ use crate::{
     },
 };
 
-pub struct DirectRuntime {
+pub struct DirectRuntime<O: Write> {
     stack: Vec<i32>,
+    pub output: O,
 }
 
-impl DirectRuntime {
-    pub fn new() -> Self {
-        Self { stack: Vec::new() }
+impl<Output: Write> DirectRuntime<Output> {
+    pub fn new(output: Output) -> Self {
+        Self {
+            stack: Vec::new(),
+            output,
+        }
     }
 }
 
-impl Runtime for DirectRuntime {
+impl<O: Write> Runtime for DirectRuntime<O> {
     fn run_statement(&mut self, statement: Statement) -> RuntimeResult {
         use Statement::*;
         match statement {
@@ -33,7 +39,7 @@ impl Runtime for DirectRuntime {
     }
 }
 
-impl DirectRuntime {
+impl<O: Write> DirectRuntime<O> {
     fn run_io(&mut self, stat: StatementIO) -> RuntimeResultIO {
         use StatementIO::*;
         match stat {
@@ -73,7 +79,7 @@ impl DirectRuntime {
         // Should we pop the last element ?
         match self.stack.pop() {
             Some(i) => {
-                print!("{i}");
+                write!(self.output, "{i}").unwrap();
                 Ok(RuntimeReport::Next)
             }
             None => Err(RuntimeErrorIO::ReadEmptyStack),
@@ -84,7 +90,7 @@ impl DirectRuntime {
         match self.stack.pop() {
             Some(i) => match char::from_u32(i as u32) {
                 Some(c) => {
-                    print!("{c}");
+                    write!(self.output, "{c}").unwrap();
                     Ok(RuntimeReport::Next)
                 }
                 None => Err(RuntimeErrorIO::InvalidUTF8Character),
@@ -126,13 +132,9 @@ impl DirectRuntime {
     }
 
     fn copy_nth_top_stack(&mut self, i: i32) -> RuntimeResultStackManip {
-        if i < 1 {
-            return Err(RuntimeErrorStackManip::NotInStackRange);
-        }
-
         let i = i as usize;
 
-        if i > self.stack.len() {
+        if i < 1 || i > self.stack.len() {
             return Err(RuntimeErrorStackManip::NotInStackRange);
         }
 
