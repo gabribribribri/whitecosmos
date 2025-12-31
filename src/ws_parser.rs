@@ -46,7 +46,7 @@ impl Parser for WSParser {
 impl WSParser {
     pub fn new(reader: io::BufReader<std::fs::File>) -> Self {
         WSParser {
-            code: [0; 512],
+            code: [0; 2048],
             code_length: 0,
             code_index: 0,
             reader,
