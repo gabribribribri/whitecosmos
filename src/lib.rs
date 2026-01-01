@@ -8,7 +8,7 @@ pub mod handler;
 // PARSERs
 //
 pub mod parser;
-pub mod ws_parser;
+pub mod classic_parser;
 
 //
 // RUNTIMEs

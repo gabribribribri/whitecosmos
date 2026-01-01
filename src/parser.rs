@@ -25,19 +25,20 @@ pub enum ParseErrorIMP {
 }
 pub enum ParseErrorIO {
     UnexpectedEOF,
-    DisallowedLF,
+    ForbiddenLF,
 }
 pub enum ParseErrorStackManip {
     UnexpectedEOF,
-    DisallowedTab,
+    ForbiddenTab,
 }
 pub enum ParseErrorArithmetic {
     UnexpectedEOF,
+    ForbiddenLF
 }
 pub enum ParseErrorFlowCtrl {
     UnexpectedEOF,
     WrongProgramEnd,
-    DisallowedLF,
+    ForbiddenLF,
 }
 pub enum ParseErrorHeapAccess {
     UnexpectedEOF,
@@ -48,51 +49,52 @@ pub enum ParseErrorHeapAccess {
 ///
 impl std::fmt::Display for ParseError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Parsing > ")?;
+        write!(f, "parsing > ")?;
 
         match self {
             ParseError::IMP(err) => {
-                write!(f, "IMP > ")?;
+                write!(f, "imp > ")?;
                 match err {
-                    ParseErrorIMP::UnexpectedEOF => write!(f, "Unexpected EOF"),
+                    ParseErrorIMP::UnexpectedEOF => write!(f, "unexpected EOF"),
                 }
             }
             ParseError::IO(err) => {
-                write!(f, "IO > ")?;
+                write!(f, "io > ")?;
                 match err {
-                    ParseErrorIO::UnexpectedEOF => write!(f, "Unexpected EOF"),
-                    ParseErrorIO::DisallowedLF => write!(f, "[LF] is not a valid command here"),
+                    ParseErrorIO::UnexpectedEOF => write!(f, "unexpected EOF"),
+                    ParseErrorIO::ForbiddenLF => write!(f, "[LF] is not a valid command here"),
                 }
             }
             ParseError::StackManip(err) => {
-                write!(f, "Stack Manipulation > ")?;
+                write!(f, "stack manipulation > ")?;
                 match err {
-                    ParseErrorStackManip::UnexpectedEOF => write!(f, "Unexpected EOF"),
-                    ParseErrorStackManip::DisallowedTab => {
+                    ParseErrorStackManip::UnexpectedEOF => write!(f, "unexpected EOF"),
+                    ParseErrorStackManip::ForbiddenTab => {
                         write!(f, "[Tab] is not a valid command here")
                     }
                 }
             }
             ParseError::Arithmetic(err) => {
-                write!(f, "Arithmetic > ")?;
+                write!(f, "arithmetic > ")?;
                 match err {
-                    ParseErrorArithmetic::UnexpectedEOF => write!(f, "Unexpected EOF"),
+                    ParseErrorArithmetic::UnexpectedEOF => write!(f, "unexpected EOF"),
+                    ParseErrorArithmetic::ForbiddenLF => write!(f, "[LF] is not a valid command here")
                 }
             }
             ParseError::FlowCtrl(err) => {
-                write!(f, "Flow Control > ")?;
+                write!(f, "flow control > ")?;
                 match err {
-                    ParseErrorFlowCtrl::UnexpectedEOF => write!(f, "Unexpected EOF"),
-                    ParseErrorFlowCtrl::WrongProgramEnd => write!(f, "Wrong Program End"),
-                    ParseErrorFlowCtrl::DisallowedLF => {
+                    ParseErrorFlowCtrl::UnexpectedEOF => write!(f, "unexpected EOF"),
+                    ParseErrorFlowCtrl::WrongProgramEnd => write!(f, "wrong program end"),
+                    ParseErrorFlowCtrl::ForbiddenLF => {
                         write!(f, "[LF] is not a valid command here")
                     }
                 }
             }
             ParseError::HeapAccess(err) => {
-                write!(f, "Head Access > ")?;
+                write!(f, "head access > ")?;
                 match err {
-                    ParseErrorHeapAccess::UnexpectedEOF => write!(f, "Unexpected EOF"),
+                    ParseErrorHeapAccess::UnexpectedEOF => write!(f, "unexpected EOF"),
                 }
             }
         }

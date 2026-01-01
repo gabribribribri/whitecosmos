@@ -1,44 +1,45 @@
 ///
 /// GLOBAL STATEMENTS
-/// 
-#[derive(Debug,Copy, Clone)]
+///
+#[derive(Debug, Copy, Clone)]
 pub enum Statement {
     IO(StatementIO),
     FlowCtrl(StatementFlowCtrl),
     HeapAccess(StatementHeapAccess),
     Arithmetic(StatementArithmetic),
-    StackManip(StatementStackManip)
+    StackManip(StatementStackManip),
 }
 
 ///
 /// LOCAL STATEMENTS
-/// 
-#[derive(Debug,Copy, Clone)]
+///
+#[derive(Debug, Copy, Clone)]
 pub enum StatementStackManip {
     Push(i32),
     DuplicateTopItem,
     SwapTopTwoItems,
     DiscardTopItem,
     CopyNthOnTop(i32),
-    SlideKeepTopItem(i32)
-    
+    SlideKeepTopItem(i32),
 }
-#[derive(Debug,Copy, Clone)]
+#[derive(Debug, Copy, Clone)]
 pub enum StatementFlowCtrl {
-    EndProgram
+    EndProgram,
 }
-#[derive(Debug,Copy, Clone)]
-pub enum StatementHeapAccess {
-    
-}
-#[derive(Debug,Copy, Clone)]
+#[derive(Debug, Copy, Clone)]
+pub enum StatementHeapAccess {}
+#[derive(Debug, Copy, Clone)]
 pub enum StatementArithmetic {
-    
+    Addition,
+    Substraction,
+    Multiplication,
+    IntegerDivision,
+    Modulo,
 }
-#[derive(Debug,Copy, Clone)]
+#[derive(Debug, Copy, Clone)]
 pub enum StatementIO {
     PopStackOutputNumber,
-    PopStackOutputChar
+    PopStackOutputChar,
 }
 
 ///

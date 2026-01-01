@@ -1,10 +1,9 @@
 use std::io::{self, Read};
 
 use crate::parser::{
-    ParseErrorFlowCtrl, ParseErrorIO, ParseResult, ParseResultArithmetic, ParseResultFlowCtrl,
-    ParseResultHeapAccess, ParseResultIO, ParseResultStackManip, Parser,
+    ParseErrorArithmetic, ParseErrorFlowCtrl, ParseErrorIO, ParseResult, ParseResultArithmetic, ParseResultFlowCtrl, ParseResultHeapAccess, ParseResultIO, ParseResultStackManip, Parser
 };
-use crate::statements::{Statement, StatementFlowCtrl, StatementIO, StatementStackManip};
+use crate::statements::{Statement, StatementArithmetic, StatementFlowCtrl, StatementIO, StatementStackManip};
 
 const LF: u8 = 0x6c;
 const TAB: u8 = 0x74;
@@ -86,7 +85,7 @@ impl WSParser {
                         _ => (),
                     }
                 },
-                LF => return Err(ParseErrorIO::DisallowedLF),
+                LF => return Err(ParseErrorIO::ForbiddenLF),
                 _ => (),
             }
         }
@@ -115,7 +114,7 @@ impl WSParser {
                         LF => {
                             return Ok(StatementStackManip::SlideKeepTopItem(self.parse_number()?));
                         }
-                        TAB => return Err(crate::parser::ParseErrorStackManip::DisallowedTab),
+                        TAB => return Err(crate::parser::ParseErrorStackManip::ForbiddenTab),
                         _ => (),
                     }
                 },
@@ -125,7 +124,31 @@ impl WSParser {
     }
 
     fn parse_arithmetic(&mut self) -> ParseResultArithmetic {
-        todo!()
+        loop {
+            self.code_index += 1;
+            
+        match self.index_char()? {
+            SPACE => loop {
+                self.code_index += 1;
+                match self.index_char()? {
+                    SPACE => return Ok(StatementArithmetic::Addition),
+                    TAB => return Ok(StatementArithmetic::Substraction),
+                    LF => return Ok(StatementArithmetic::Multiplication),
+                    _ => (),
+                }
+            },
+            TAB => loop {
+                self.code_index += 1;
+                match self.index_char()? {
+                    SPACE => return Ok(StatementArithmetic::IntegerDivision),
+                    TAB => return Ok(StatementArithmetic::Modulo),
+                    _ => (),
+                }
+            },
+            LF => return Err(ParseErrorArithmetic::ForbiddenLF),
+            _ => (),
+        }
+        }
     }
 
     fn parse_flow_control(&mut self) -> ParseResultFlowCtrl {
@@ -146,7 +169,7 @@ impl WSParser {
                     match self.index_char()? {
                         SPACE => todo!(),
                         TAB => todo!(),
-                        LF => return Err(ParseErrorFlowCtrl::DisallowedLF),
+                        LF => return Err(ParseErrorFlowCtrl::ForbiddenLF),
                         _ => (),
                     }
                 },

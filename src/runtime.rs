@@ -32,7 +32,12 @@ pub enum RuntimeErrorStackManip {
     StackTooSmall,
     NotInStackRange
 }
-pub enum RuntimeErrorArithmetic {}
+pub enum RuntimeErrorArithmetic {
+    NoRhsOnStack,
+    NoLhsOnStack,
+    DivisionByZero,
+    UnderflowOrOverflow
+}
 pub enum RuntimeErrorFlowCtrl {}
 pub enum RuntimeErrorHeapAccess {}
 
@@ -41,39 +46,43 @@ pub enum RuntimeErrorHeapAccess {}
 ///
 impl std::fmt::Display for RuntimeError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Runtime > ")?;
+        write!(f, "runtime > ")?;
 
         use RuntimeError::*;
         match self {
             IO(err) => {
-                write!(f, "IO > ")?;
+                write!(f, "io > ")?;
                 match err {
-                    RuntimeErrorIO::ReadEmptyStack => write!(f, "Read Empty Stack"),
-                    RuntimeErrorIO::InvalidUTF8Character => write!(f, "Invalid UTF-8 Character")
+                    RuntimeErrorIO::ReadEmptyStack => write!(f, "read empty stack"),
+                    RuntimeErrorIO::InvalidUTF8Character => write!(f, "invalid UTF-8 character")
                 }
             },
             StackManip(err) => {
-                write!(f, "Stack Manipulation > ")?;
+                write!(f, "stack manipulation > ")?;
                 match err {
-                    RuntimeErrorStackManip::EmptyStack => write!(f, "Empty Stack"),
-                    RuntimeErrorStackManip::StackTooSmall => write!(f, "Stack Too Small"),
-                    RuntimeErrorStackManip::NotInStackRange => write!(f, "Not In Stack Range"),
+                    RuntimeErrorStackManip::EmptyStack => write!(f, "empty stack"),
+                    RuntimeErrorStackManip::StackTooSmall => write!(f, "stack too small"),
+                    RuntimeErrorStackManip::NotInStackRange => write!(f, "not in stack range"),
                 }
             },
             Arithmetic(err) => {
-                write!(f, "Arithmetic > ")?;
+                write!(f, "arithmetic > ")?;
                 match err {
-                    _ => todo!()
+                    RuntimeErrorArithmetic::NoRhsOnStack => write!(f, "empty stack, no possible operation"),
+                    RuntimeErrorArithmetic::NoLhsOnStack => write!(f, "stack contains only one element"),
+                    RuntimeErrorArithmetic::DivisionByZero => write!(f, "division by zero occured"),
+                    RuntimeErrorArithmetic::UnderflowOrOverflow => write!(f, "overflow or underflow occured")
+                    
                 }
             },
             FlowCtrl(err) => {
-                write!(f, "Flow Control > ")?;
+                write!(f, "flow control > ")?;
                 match err {
                     _ => todo!()
                 }
             },
             HeapAccess(err) => {
-                write!(f, "Heap Access > ")?;
+                write!(f, "heap access > ")?;
                 match err {
                     _ => todo!()
                 }

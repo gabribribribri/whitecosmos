@@ -2,9 +2,9 @@ use std::io::Write;
 
 use crate::{
     runtime::{
-        Runtime, RuntimeErrorIO, RuntimeErrorStackManip, RuntimeReport, RuntimeResult,
-        RuntimeResultArithmetic, RuntimeResultFlowCtrl, RuntimeResultHeapAccess, RuntimeResultIO,
-        RuntimeResultStackManip,
+        Runtime, RuntimeErrorArithmetic, RuntimeErrorIO, RuntimeErrorStackManip, RuntimeReport,
+        RuntimeResult, RuntimeResultArithmetic, RuntimeResultFlowCtrl, RuntimeResultHeapAccess,
+        RuntimeResultIO, RuntimeResultStackManip,
     },
     statements::{
         Statement, StatementArithmetic, StatementFlowCtrl, StatementHeapAccess, StatementIO,
@@ -68,7 +68,41 @@ impl<O: Write> DirectRuntime<O> {
     }
 
     fn run_arithmetic(&mut self, stat: StatementArithmetic) -> RuntimeResultArithmetic {
-        todo!()
+        let rhs = match self.stack.pop() {
+            Some(x) => x,
+            None => return Err(RuntimeErrorArithmetic::NoRhsOnStack),
+        };
+        let lhs = match self.stack.pop() {
+            Some(x) => x,
+            None => return Err(RuntimeErrorArithmetic::NoLhsOnStack),
+        };
+
+        use StatementArithmetic::*;
+        let res = match stat {
+            Addition => match lhs.checked_add(rhs) {
+                Some(x) => x,
+                None => return Err(RuntimeErrorArithmetic::UnderflowOrOverflow),
+            },
+            Substraction => match lhs.checked_sub(rhs) {
+                Some(x) => x,
+                None => return Err(RuntimeErrorArithmetic::UnderflowOrOverflow),
+            },
+            Multiplication => match lhs.checked_mul(rhs) {
+                Some(x) => x,
+                None => return Err(RuntimeErrorArithmetic::UnderflowOrOverflow),
+            },
+            IntegerDivision => match lhs.checked_div(rhs) {
+                Some(x) => x,
+                None => return Err(RuntimeErrorArithmetic::DivisionByZero),
+            },
+            Modulo => match lhs.checked_rem(rhs) {
+                Some(x) => x,
+                None => return Err(RuntimeErrorArithmetic::DivisionByZero),
+            },
+        };
+
+        self.stack.push(res);
+        Ok(RuntimeReport::Next)
     }
 
     fn run_heap_access(&mut self, stat: StatementHeapAccess) -> RuntimeResultHeapAccess {
