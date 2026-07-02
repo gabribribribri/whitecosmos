@@ -33,7 +33,7 @@ pub enum ParseErrorStackManip {
 }
 pub enum ParseErrorArithmetic {
     UnexpectedEOF,
-    ForbiddenLF
+    ForbiddenLF,
 }
 pub enum ParseErrorFlowCtrl {
     UnexpectedEOF,
@@ -78,7 +78,9 @@ impl std::fmt::Display for ParseError {
                 write!(f, "arithmetic > ")?;
                 match err {
                     ParseErrorArithmetic::UnexpectedEOF => write!(f, "unexpected EOF"),
-                    ParseErrorArithmetic::ForbiddenLF => write!(f, "[LF] is not a valid command here")
+                    ParseErrorArithmetic::ForbiddenLF => {
+                        write!(f, "[LF] is not a valid command here")
+                    }
                 }
             }
             ParseError::FlowCtrl(err) => {
@@ -172,5 +174,5 @@ pub type ParseResultHeapAccess = Result<StatementHeapAccess, ParseErrorHeapAcces
 /// Actual trait...
 ///
 pub trait Parser {
-    fn next_statement(&mut self) -> Result<Statement, ParseError>;
+    fn next_statement(&mut self) -> ParseResult;
 }

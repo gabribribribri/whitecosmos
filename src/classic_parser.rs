@@ -17,7 +17,7 @@ pub struct WSParser {
     // code_index is the LAST READ character. NOT the next one to read
     code_length: usize,
     code_index: usize,
-    reader: io::BufReader<std::fs::File>,
+    reader: io::BufReader<std::fs::File>, // shouldn't this just be smth that impl Read ?
 }
 
 impl Parser for WSParser {

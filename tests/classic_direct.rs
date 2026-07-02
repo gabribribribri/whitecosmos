@@ -35,7 +35,7 @@ mod classic_parser_direct_runtime {
     #[test]
     fn arithmetic() {
         // I was too bored to test Modulo and Multiplication
-        let file = File::open("programs/arithmetic_test.fws").unwrap();
+        let file = File::open("programs/arithmetic_tests.fws").unwrap();
         let reader = io::BufReader::new(file);
         let parser = classic_parser::WSParser::new(reader);
         let runtime = direct_runtime::DirectRuntime::new(Vec::new());
