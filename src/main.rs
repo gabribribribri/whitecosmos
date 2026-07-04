@@ -7,7 +7,7 @@ fn main() {
     let path: String = std::env::args().nth(1).unwrap();
 
     let file = File::open(path).unwrap();
-    let reader = io::BufReader::new(file);
+    let reader = Box::new(io::BufReader::new(file));
     let tokens = classic_parser::TokenValues { lf: b'l', tab: b't', space: b's'};
     let parser = classic_parser::WSParser::new(reader, tokens);
 

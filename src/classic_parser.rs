@@ -29,7 +29,7 @@ pub struct WSParser {
     code: [u8; 2048],
     code_length: usize,
     code_index: usize,
-    reader: io::BufReader<std::fs::File>, // shouldn't this just be smth that impl Read ?
+    reader: Box<dyn Read>, // shouldn't this just be smth that impl Read ?
     tokens: TokenValues,
 }
 
@@ -48,7 +48,7 @@ impl Parser for WSParser {
 }
 
 impl WSParser {
-    pub fn new(reader: io::BufReader<std::fs::File>, tokens: TokenValues) -> Self {
+    pub fn new(reader: Box<dyn Read>, tokens: TokenValues) -> Self {
         WSParser {
             code: [0; 2048],
             code_length: 0,
