@@ -1,54 +1,60 @@
 use std::io::{self, Read};
 
 use crate::parser::{
-    ParseErrorArithmetic, ParseErrorFlowCtrl, ParseErrorIO, ParseResult, ParseResultArithmetic, ParseResultFlowCtrl, ParseResultHeapAccess, ParseResultIO, ParseResultStackManip, Parser
+    ParseErrorArithmetic, ParseErrorFlowCtrl, ParseErrorIO, ParseErrorStackManip, ParseResult,
+    ParseResultArithmetic, ParseResultFlowCtrl, ParseResultHeapAccess, ParseResultIO,
+    ParseResultStackManip, Parser,
 };
-use crate::statements::{Statement, StatementArithmetic, StatementFlowCtrl, StatementIO, StatementStackManip};
+use crate::statements::{
+    Statement, StatementArithmetic, StatementFlowCtrl, StatementIO, StatementStackManip,
+};
 
-const LF: u8 = 0x6c;
-const TAB: u8 = 0x74;
-const SPACE: u8 = 0x73;
-// const LF: u8 = 0x0A;
-// const TAB: u8 = 0x9;
-// const SPACE: u8 = 0x20;
+#[derive(Copy, Clone, Debug)]
+pub struct TokenValues {
+    pub lf: u8,
+    pub tab: u8,
+    pub space: u8,
+}
+
+enum Token {
+    Lf,
+    Tab,
+    Space,
+}
+
+use Token::*;
 
 pub struct WSParser {
-    code: [u8; 2048],
     // code_index is the LAST READ character. NOT the next one to read
+    code: [u8; 2048],
     code_length: usize,
     code_index: usize,
     reader: io::BufReader<std::fs::File>, // shouldn't this just be smth that impl Read ?
+    tokens: TokenValues,
 }
 
 impl Parser for WSParser {
     fn next_statement(&mut self) -> ParseResult {
-        loop {
-            self.code_index += 1;
-            match self.index_char()? {
-                TAB => loop {
-                    self.code_index += 1;
-                    match self.index_char()? {
-                        TAB => return Ok(Statement::HeapAccess(self.parse_head_access()?)),
-                        SPACE => return Ok(Statement::Arithmetic(self.parse_arithmetic()?)),
-                        LF => return Ok(Statement::IO(self.parse_io()?)),
-                        _ => (),
-                    }
-                },
-                SPACE => return Ok(Statement::StackManip(self.parse_stack_manipulation()?)),
-                LF => return Ok(Statement::FlowCtrl(self.parse_flow_control()?)),
-                _ => (),
-            }
+        match self.next_token()? {
+            Tab => match self.next_token()? {
+                Tab => Ok(Statement::HeapAccess(self.parse_heap_access()?)),
+                Space => Ok(Statement::Arithmetic(self.parse_arithmetic()?)),
+                Lf => Ok(Statement::IO(self.parse_io()?)),
+            },
+            Space => Ok(Statement::StackManip(self.parse_stack_manipulation()?)),
+            Lf => Ok(Statement::FlowCtrl(self.parse_flow_control()?)),
         }
     }
 }
 
 impl WSParser {
-    pub fn new(reader: io::BufReader<std::fs::File>) -> Self {
+    pub fn new(reader: io::BufReader<std::fs::File>, tokens: TokenValues) -> Self {
         WSParser {
             code: [0; 2048],
             code_length: 0,
             code_index: 0,
             reader,
+            tokens,
         }
     }
 
@@ -65,161 +71,109 @@ impl WSParser {
         Ok(self.code[self.code_index])
     }
 
-    fn parse_io(&mut self) -> ParseResultIO {
+    fn next_token(&mut self) -> Result<Token, io::Error> {
         loop {
             self.code_index += 1;
-            match self.index_char()? {
-                TAB => loop {
-                    self.code_index += 1;
-                    match self.index_char()? {
-                        TAB => todo!(),
-                        SPACE => todo!(),
-                        _ => (),
-                    }
-                },
-                SPACE => loop {
-                    self.code_index += 1;
-                    match self.index_char()? {
-                        TAB => return Ok(StatementIO::PopStackOutputNumber),
-                        SPACE => return Ok(StatementIO::PopStackOutputChar),
-                        _ => (),
-                    }
-                },
-                LF => return Err(ParseErrorIO::ForbiddenLF),
-                _ => (),
+            let next_char = self.index_char()?;
+            if next_char == self.tokens.lf {
+                return Ok(Token::Lf);
+            } else if next_char == self.tokens.tab {
+                return Ok(Token::Tab);
+            } else if next_char == self.tokens.space {
+                return Ok(Token::Space);
             }
+        }
+    }
+
+    fn parse_io(&mut self) -> ParseResultIO {
+        match self.next_token()? {
+            Space => match self.next_token()? {
+                Tab => Ok(StatementIO::PopStackOutputNumber),
+                Space => Ok(StatementIO::PopStackOutputChar),
+                Lf => Err(ParseErrorIO::ForbiddenLF),
+            },
+            Tab => match self.next_token()? {
+                Tab => todo!(),
+                Space => todo!(),
+                Lf => Err(ParseErrorIO::ForbiddenLF),
+            },
+            Lf => Err(ParseErrorIO::ForbiddenLF),
         }
     }
 
     fn parse_stack_manipulation(&mut self) -> ParseResultStackManip {
-        loop {
-            self.code_index += 1;
-            match self.index_char()? {
-                SPACE => return Ok(StatementStackManip::Push(self.parse_number()?)),
-                LF => loop {
-                    self.code_index += 1;
-                    match self.index_char()? {
-                        SPACE => return Ok(StatementStackManip::DuplicateTopItem),
-                        TAB => return Ok(StatementStackManip::SwapTopTwoItems),
-                        LF => return Ok(StatementStackManip::DiscardTopItem),
-                        _ => (),
-                    }
-                },
-                TAB => loop {
-                    self.code_index += 1;
-                    match self.index_char()? {
-                        SPACE => {
-                            return Ok(StatementStackManip::CopyNthOnTop(self.parse_number()?));
-                        }
-                        LF => {
-                            return Ok(StatementStackManip::SlideKeepTopItem(self.parse_number()?));
-                        }
-                        TAB => return Err(crate::parser::ParseErrorStackManip::ForbiddenTab),
-                        _ => (),
-                    }
-                },
-                _ => (),
-            }
+        match self.next_token()? {
+            Space => Ok(StatementStackManip::Push(self.parse_number()?)),
+            Lf => match self.next_token()? {
+                Space => Ok(StatementStackManip::DuplicateTopItem),
+                Tab => Ok(StatementStackManip::SwapTopTwoItems),
+                Lf => Ok(StatementStackManip::DiscardTopItem),
+            },
+            Tab => match self.next_token()? {
+                Space => Ok(StatementStackManip::CopyNthOnTop(self.parse_number()?)),
+                Lf => Ok(StatementStackManip::SlideKeepTopItem(self.parse_number()?)),
+                Tab => Err(ParseErrorStackManip::ForbiddenTab),
+            },
         }
     }
 
     fn parse_arithmetic(&mut self) -> ParseResultArithmetic {
-        loop {
-            self.code_index += 1;
-            
-        match self.index_char()? {
-            SPACE => loop {
-                self.code_index += 1;
-                match self.index_char()? {
-                    SPACE => return Ok(StatementArithmetic::Addition),
-                    TAB => return Ok(StatementArithmetic::Substraction),
-                    LF => return Ok(StatementArithmetic::Multiplication),
-                    _ => (),
-                }
+        match self.next_token()? {
+            Space => match self.next_token()? {
+                Space => Ok(StatementArithmetic::Addition),
+                Tab => Ok(StatementArithmetic::Substraction),
+                Lf => Ok(StatementArithmetic::Multiplication),
             },
-            TAB => loop {
-                self.code_index += 1;
-                match self.index_char()? {
-                    SPACE => return Ok(StatementArithmetic::IntegerDivision),
-                    TAB => return Ok(StatementArithmetic::Modulo),
-                    _ => (),
-                }
+            Tab => match self.next_token()? {
+                Space => Ok(StatementArithmetic::IntegerDivision),
+                Tab => Ok(StatementArithmetic::Modulo),
+                Lf => Err(ParseErrorArithmetic::ForbiddenLF),
             },
-            LF => return Err(ParseErrorArithmetic::ForbiddenLF),
-            _ => (),
-        }
+            Lf => Err(ParseErrorArithmetic::ForbiddenLF),
         }
     }
 
     fn parse_flow_control(&mut self) -> ParseResultFlowCtrl {
-        loop {
-            self.code_index += 1;
-            match self.index_char()? {
-                SPACE => loop {
-                    self.code_index += 1;
-                    match self.index_char()? {
-                        SPACE => todo!(),
-                        TAB => todo!(),
-                        LF => todo!(),
-                        _ => (),
-                    }
-                },
-                TAB => loop {
-                    self.code_index += 1;
-                    match self.index_char()? {
-                        SPACE => todo!(),
-                        TAB => todo!(),
-                        LF => return Err(ParseErrorFlowCtrl::ForbiddenLF),
-                        _ => (),
-                    }
-                },
-                LF => loop {
-                    self.code_index += 1;
-                    match self.index_char()? {
-                        LF => return Ok(StatementFlowCtrl::EndProgram),
-                        SPACE | TAB => return Err(ParseErrorFlowCtrl::WrongProgramEnd),
-                        _ => (),
-                    }
-                },
-                _ => (),
-            }
+        match self.next_token()? {
+            Space => match self.next_token()? {
+                Space => todo!(),
+                Tab => todo!(),
+                Lf => todo!(),
+            },
+            Tab => match self.next_token()? {
+                Space => todo!(),
+                Tab => todo!(),
+                Lf => Err(ParseErrorFlowCtrl::ForbiddenLF),
+            },
+            Lf => match self.next_token()? {
+                Lf => Ok(StatementFlowCtrl::EndProgram),
+                Space | Tab => Err(ParseErrorFlowCtrl::WrongProgramEnd),
+            },
         }
     }
 
-    fn parse_head_access(&mut self) -> ParseResultHeapAccess {
+    fn parse_heap_access(&mut self) -> ParseResultHeapAccess {
         todo!()
     }
 
     fn parse_number(&mut self) -> io::Result<i32> {
         let is_pos: bool;
-        loop {
-            self.code_index += 1;
-            match self.index_char()? {
-                SPACE => {
-                    is_pos = true;
-                    break;
-                }
-                TAB => {
-                    is_pos = false;
-                    break;
-                }
-                LF => return Ok(0),
-                _ => (),
-            }
+        match self.next_token()? {
+            Space => is_pos = true,
+            Tab => is_pos = false,
+            Lf => return Ok(0),
         }
 
         let mut temp_int = 0;
 
         loop {
-            self.code_index += 1;
-            match self.index_char()? {
-                SPACE => temp_int <<= 1,
-                TAB => {
+            match self.next_token()? {
+                Space => temp_int <<= 1,
+                Tab => {
                     temp_int <<= 1;
-                    temp_int |= 0b1
+                    temp_int |= 0b1;
                 }
-                LF => break,
-                _ => (),
+                Lf => break,
             }
         }
 

@@ -12,7 +12,8 @@ mod classic_parser_direct_runtime {
     fn hello_world() {
         let file = File::open("programs/hello_world.fws").unwrap();
         let reader = io::BufReader::new(file);
-        let parser = classic_parser::WSParser::new(reader);
+        let tokens = classic_parser::TokenValues { lf: b'l', tab: b't', space: b's'};
+        let parser = classic_parser::WSParser::new(reader, tokens);
         let runtime = direct_runtime::DirectRuntime::new(Vec::new());
         let mut handler = handler::Handler::new(parser, runtime);
         handler.run();
@@ -24,7 +25,8 @@ mod classic_parser_direct_runtime {
     fn test1() {
         let file = File::open("programs/test1.fws").unwrap();
         let reader = io::BufReader::new(file);
-        let parser = classic_parser::WSParser::new(reader);
+        let tokens = classic_parser::TokenValues { lf: b'l', tab: b't', space: b's'};
+        let parser = classic_parser::WSParser::new(reader, tokens);
         let runtime = direct_runtime::DirectRuntime::new(Vec::new());
         let mut handler = handler::Handler::new(parser, runtime);
         handler.run();
@@ -37,7 +39,8 @@ mod classic_parser_direct_runtime {
         // I was too bored to test Modulo and Multiplication
         let file = File::open("programs/arithmetic_tests.fws").unwrap();
         let reader = io::BufReader::new(file);
-        let parser = classic_parser::WSParser::new(reader);
+        let tokens = classic_parser::TokenValues { lf: b'l', tab: b't', space: b's'};
+        let parser = classic_parser::WSParser::new(reader, tokens);
         let runtime = direct_runtime::DirectRuntime::new(Vec::new());
         let mut handler = handler::Handler::new(parser, runtime);
         handler.run();

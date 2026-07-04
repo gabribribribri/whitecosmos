@@ -8,7 +8,8 @@ fn main() {
 
     let file = File::open(path).unwrap();
     let reader = io::BufReader::new(file);
-    let parser = classic_parser::WSParser::new(reader);
+    let tokens = classic_parser::TokenValues { lf: b'l', tab: b't', space: b's'};
+    let parser = classic_parser::WSParser::new(reader, tokens);
 
     let runtime = direct_runtime::DirectRuntime::new(Box::new(std::io::stdout()));
 
