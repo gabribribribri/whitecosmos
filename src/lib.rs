@@ -3,6 +3,7 @@
 // 
 pub mod statements;
 pub mod handler;
+pub mod handler_errors;
 
 //
 // PARSERs
@@ -15,6 +16,3 @@ pub mod classic_parser;
 //
 pub mod runtime;
 pub mod direct_runtime;
-
-// pub use ws_parser;
-// pub use direct_runtime;

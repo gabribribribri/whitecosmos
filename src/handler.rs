@@ -1,53 +1,45 @@
 use crate::{
+    handler_errors::EngineError,
     parser::{ParseResult, Parser},
     runtime::{Runtime, RuntimeReport},
     statements::Statement,
 };
 
-pub struct Handler<P: Parser, R: Runtime> {
-    parser: P,
-    runtime: R,
+pub struct Handler {
+    parser: Box<dyn Parser>,
+    runtime: Box<dyn Runtime>,
     statements: Vec<Statement>,
-    stat_index: usize,
+    // maybe we will need to take back stat_index
+    // stat_index: usize
 }
 
-impl<P: Parser, R: Runtime> Handler<P, R> {
-    pub fn new(parser: P, runtime: R) -> Self {
+impl Handler {
+    pub fn new(parser: Box<dyn Parser>, runtime: Box<dyn Runtime>) -> Self {
         Self {
             parser,
             runtime,
             statements: Vec::new(),
-            stat_index: 0,
         }
     }
 
-    pub fn into_parts(self) -> (P, R) {
-        (self.parser, self.runtime)
-    }
-
-    pub fn run(&mut self) {
+    pub fn run(&mut self) -> Result<(), EngineError> {
+        let mut stat_index = 0;
         loop {
-            let statement = match self.read_statement() {
-                Ok(st) => st,
-                Err(e) => return self.print_error(Box::new(e)),
-            };
+            let statement = self.read_statement(stat_index)?;
 
-            let action = match self.runtime.run_statement(statement) {
-                Ok(act) => act,
-                Err(e) => return self.print_error(Box::new(e)),
-            };
+            let action = self.runtime.run_statement(statement)?;
 
             match action {
-                RuntimeReport::Next => self.stat_index += 1,
-                RuntimeReport::EndProgram => return,
+                RuntimeReport::Next => stat_index += 1,
+                RuntimeReport::EndProgram => return Ok(()),
             }
         }
     }
 
-    fn read_statement(&mut self) -> ParseResult {
-        if self.stat_index < self.statements.len() {
-            Ok(self.statements[self.stat_index])
-        } else if self.stat_index == self.statements.len() {
+    fn read_statement(&mut self, stat_index: usize) -> ParseResult {
+        if stat_index < self.statements.len() {
+            Ok(self.statements[stat_index])
+        } else if stat_index == self.statements.len() {
             match self.parser.next_statement() {
                 Ok(st) => {
                     self.statements.push(st);
@@ -58,10 +50,5 @@ impl<P: Parser, R: Runtime> Handler<P, R> {
         } else {
             panic!("This should not happen >:(")
         }
-    }
-
-    fn print_error(&self, err: Box<dyn std::error::Error>) {
-        println!("\nEncountered error on statement {}", self.stat_index + 1);
-        println!("{}\n", err);
     }
 }

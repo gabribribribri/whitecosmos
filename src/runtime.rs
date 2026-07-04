@@ -1,4 +1,7 @@
-use crate::statements::Statement;
+use crate::{
+    handler_errors::EngineError,
+    statements::Statement,
+};
 
 ///
 /// RUNTIME
@@ -25,18 +28,20 @@ pub enum RuntimeError {
 ///
 pub enum RuntimeErrorIO {
     ReadEmptyStack,
-    InvalidUTF8Character
+    InvalidUTF8Character,
 }
+
 pub enum RuntimeErrorStackManip {
     EmptyStack,
     StackTooSmall,
-    NotInStackRange
+    NotInStackRange,
 }
+
 pub enum RuntimeErrorArithmetic {
     NoRhsOnStack,
     NoLhsOnStack,
     DivisionByZero,
-    UnderflowOrOverflow
+    UnderflowOrOverflow,
 }
 pub enum RuntimeErrorFlowCtrl {}
 pub enum RuntimeErrorHeapAccess {}
@@ -44,49 +49,60 @@ pub enum RuntimeErrorHeapAccess {}
 ///
 /// DISPLAYING RUNTIME ERRORS
 ///
+impl std::fmt::Display for RuntimeErrorIO {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        use RuntimeErrorIO::*;
+        match self {
+            ReadEmptyStack => write!(f, "read empty stack"),
+            InvalidUTF8Character => write!(f, "invalid UTF-8 character"),
+        }
+    }
+}
+
+impl std::fmt::Display for RuntimeErrorStackManip {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        use RuntimeErrorStackManip::*;
+        match self {
+            EmptyStack => write!(f, "empty stack"),
+            StackTooSmall => write!(f, "stack too small"),
+            NotInStackRange => write!(f, "not in stack range"),
+        }
+    }
+}
+
+impl std::fmt::Display for RuntimeErrorArithmetic {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        use RuntimeErrorArithmetic::*;
+        match self {
+            NoRhsOnStack => write!(f, "empty stack, no possible operation"),
+            NoLhsOnStack => write!(f, "stack contains only one element"),
+            DivisionByZero => write!(f, "division by zero occured"),
+            UnderflowOrOverflow => write!(f, "overflow or underflow occured"),
+        }
+    }
+}
+
+impl std::fmt::Display for RuntimeErrorFlowCtrl {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        todo!()
+    }
+}
+
+impl std::fmt::Display for RuntimeErrorHeapAccess {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        todo!()
+    }
+}
+
 impl std::fmt::Display for RuntimeError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "runtime > ")?;
-
         use RuntimeError::*;
         match self {
-            IO(err) => {
-                write!(f, "io > ")?;
-                match err {
-                    RuntimeErrorIO::ReadEmptyStack => write!(f, "read empty stack"),
-                    RuntimeErrorIO::InvalidUTF8Character => write!(f, "invalid UTF-8 character")
-                }
-            },
-            StackManip(err) => {
-                write!(f, "stack manipulation > ")?;
-                match err {
-                    RuntimeErrorStackManip::EmptyStack => write!(f, "empty stack"),
-                    RuntimeErrorStackManip::StackTooSmall => write!(f, "stack too small"),
-                    RuntimeErrorStackManip::NotInStackRange => write!(f, "not in stack range"),
-                }
-            },
-            Arithmetic(err) => {
-                write!(f, "arithmetic > ")?;
-                match err {
-                    RuntimeErrorArithmetic::NoRhsOnStack => write!(f, "empty stack, no possible operation"),
-                    RuntimeErrorArithmetic::NoLhsOnStack => write!(f, "stack contains only one element"),
-                    RuntimeErrorArithmetic::DivisionByZero => write!(f, "division by zero occured"),
-                    RuntimeErrorArithmetic::UnderflowOrOverflow => write!(f, "overflow or underflow occured")
-                    
-                }
-            },
-            FlowCtrl(err) => {
-                write!(f, "flow control > ")?;
-                match err {
-                    _ => todo!()
-                }
-            },
-            HeapAccess(err) => {
-                write!(f, "heap access > ")?;
-                match err {
-                    _ => todo!()
-                }
-            },
+            IO(err) => write!(f, "io > {}", err),
+            StackManip(err) => write!(f, "stack manipulation > {err}"),
+            Arithmetic(err) => write!(f, "arithmetic > {err}"),
+            FlowCtrl(err) => write!(f, "flow control > {}", todo!()),
+            HeapAccess(err) => write!(f, "heap access > {}", todo!()),
         }
     }
 }
@@ -117,6 +133,12 @@ impl_from_for_runtime_error!(RuntimeErrorHeapAccess, HeapAccess);
 impl_from_for_runtime_error!(RuntimeErrorFlowCtrl, FlowCtrl);
 impl_from_for_runtime_error!(RuntimeErrorArithmetic, Arithmetic);
 impl_from_for_runtime_error!(RuntimeErrorStackManip, StackManip);
+
+impl From<RuntimeError> for EngineError {
+    fn from(value: RuntimeError) -> Self {
+        Self::Runtime(value)
+    }
+}
 
 ///
 /// TYPE ALIASES

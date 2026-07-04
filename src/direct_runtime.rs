@@ -12,21 +12,21 @@ use crate::{
     },
 };
 
-pub struct DirectRuntime<O: Write> {
+pub struct DirectRuntime {
     stack: Vec<i32>,
-    pub output: O,
+    writer: Box<dyn Write>,
 }
 
-impl<Output: Write> DirectRuntime<Output> {
-    pub fn new(output: Output) -> Self {
+impl DirectRuntime {
+    pub fn new(output: Box<dyn Write>) -> Self {
         Self {
             stack: Vec::new(),
-            output,
+            writer: output,
         }
     }
 }
 
-impl<O: Write> Runtime for DirectRuntime<O> {
+impl Runtime for DirectRuntime {
     fn run_statement(&mut self, statement: Statement) -> RuntimeResult {
         use Statement::*;
         match statement {
@@ -39,7 +39,7 @@ impl<O: Write> Runtime for DirectRuntime<O> {
     }
 }
 
-impl<O: Write> DirectRuntime<O> {
+impl DirectRuntime {
     fn run_io(&mut self, stat: StatementIO) -> RuntimeResultIO {
         use StatementIO::*;
         match stat {
@@ -113,7 +113,7 @@ impl<O: Write> DirectRuntime<O> {
         // Should we pop the last element ?
         match self.stack.pop() {
             Some(i) => {
-                write!(self.output, "{i}").unwrap();
+                write!(self.writer, "{i}").unwrap();
                 Ok(RuntimeReport::Next)
             }
             None => Err(RuntimeErrorIO::ReadEmptyStack),
@@ -124,7 +124,7 @@ impl<O: Write> DirectRuntime<O> {
         match self.stack.pop() {
             Some(i) => match char::from_u32(i as u32) {
                 Some(c) => {
-                    write!(self.output, "{c}").unwrap();
+                    write!(self.writer, "{c}").unwrap();
                     Ok(RuntimeReport::Next)
                 }
                 None => Err(RuntimeErrorIO::InvalidUTF8Character),

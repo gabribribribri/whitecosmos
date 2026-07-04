@@ -24,16 +24,16 @@ enum Token {
 
 use Token::*;
 
-pub struct WSParser {
+pub struct ClassicParser {
     // code_index is the LAST READ character. NOT the next one to read
     code: [u8; 2048],
     code_length: usize,
     code_index: usize,
-    reader: Box<dyn Read>, // shouldn't this just be smth that impl Read ?
+    reader: Box<dyn Read>,
     tokens: TokenValues,
 }
 
-impl Parser for WSParser {
+impl Parser for ClassicParser {
     fn next_statement(&mut self) -> ParseResult {
         match self.next_token()? {
             Tab => match self.next_token()? {
@@ -47,9 +47,9 @@ impl Parser for WSParser {
     }
 }
 
-impl WSParser {
+impl ClassicParser {
     pub fn new(reader: Box<dyn Read>, tokens: TokenValues) -> Self {
-        WSParser {
+        ClassicParser {
             code: [0; 2048],
             code_length: 0,
             code_index: 0,
