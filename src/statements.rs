@@ -22,12 +22,21 @@ pub enum StatementStackManip {
     CopyNthOnTop(i32),
     SlideKeepTopItem(i32),
 }
+
 #[derive(Debug, Copy, Clone)]
 pub enum StatementFlowCtrl {
     EndProgram,
+    MarkLabel(i32),
+    JumpTo(i32),
+    JumpToIfZero(i32),
+    JumpToIfNegative(i32),
+    CallSubroutine(i32),
+    ReturnFromSubroutine
 }
+
 #[derive(Debug, Copy, Clone)]
 pub enum StatementHeapAccess {}
+
 #[derive(Debug, Copy, Clone)]
 pub enum StatementArithmetic {
     Addition,
@@ -36,6 +45,7 @@ pub enum StatementArithmetic {
     IntegerDivision,
     Modulo,
 }
+
 #[derive(Debug, Copy, Clone)]
 pub enum StatementIO {
     PopStackOutputNumber,
@@ -55,6 +65,7 @@ macro_rules! impl_from_for_statements {
         }
     };
 }
+
 impl_from_for_statements!(StatementIO, IO);
 impl_from_for_statements!(StatementHeapAccess, HeapAccess);
 impl_from_for_statements!(StatementFlowCtrl, FlowCtrl);

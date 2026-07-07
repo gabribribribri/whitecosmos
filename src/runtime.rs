@@ -10,6 +10,10 @@ use crate::{
 pub enum RuntimeReport {
     Next,
     EndProgram,
+    MarkLabel(i32),
+    JumpTo(i32),
+    CallSubroutine(i32),
+    ReturnFromSubroutine
 }
 
 ///
@@ -27,7 +31,7 @@ pub enum RuntimeError {
 /// LOCAL RUNTIME ERRORS
 ///
 pub enum RuntimeErrorIO {
-    ReadEmptyStack,
+    EmptyStack,
     InvalidUTF8Character,
 }
 
@@ -43,7 +47,12 @@ pub enum RuntimeErrorArithmetic {
     DivisionByZero,
     UnderflowOrOverflow,
 }
-pub enum RuntimeErrorFlowCtrl {}
+pub enum RuntimeErrorFlowCtrl {
+    EmptyStack,
+    LabelNotFound,
+    EmptyCallStack,
+}
+
 pub enum RuntimeErrorHeapAccess {}
 
 ///
@@ -53,7 +62,7 @@ impl std::fmt::Display for RuntimeErrorIO {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         use RuntimeErrorIO::*;
         match self {
-            ReadEmptyStack => write!(f, "read empty stack"),
+            EmptyStack => write!(f, "read empty stack"),
             InvalidUTF8Character => write!(f, "invalid UTF-8 character"),
         }
     }
@@ -74,7 +83,7 @@ impl std::fmt::Display for RuntimeErrorArithmetic {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         use RuntimeErrorArithmetic::*;
         match self {
-            NoRhsOnStack => write!(f, "empty stack, no possible operation"),
+            NoRhsOnStack => write!(f, "empty stack, no operation possible"),
             NoLhsOnStack => write!(f, "stack contains only one element"),
             DivisionByZero => write!(f, "division by zero occured"),
             UnderflowOrOverflow => write!(f, "overflow or underflow occured"),
@@ -84,7 +93,12 @@ impl std::fmt::Display for RuntimeErrorArithmetic {
 
 impl std::fmt::Display for RuntimeErrorFlowCtrl {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        todo!()
+        use RuntimeErrorFlowCtrl::*;
+        match self {
+            EmptyStack => write!(f, "empty stack, no call possible"),
+            EmptyCallStack => write!(f, "empty call stack, cannot return from subroutine"),
+            LabelNotFound => write!(f, "label not found")
+        }
     }
 }
 
@@ -101,8 +115,8 @@ impl std::fmt::Display for RuntimeError {
             IO(err) => write!(f, "io > {}", err),
             StackManip(err) => write!(f, "stack manipulation > {err}"),
             Arithmetic(err) => write!(f, "arithmetic > {err}"),
-            FlowCtrl(err) => write!(f, "flow control > {}", todo!()),
-            HeapAccess(err) => write!(f, "heap access > {}", todo!()),
+            FlowCtrl(err) => write!(f, "flow control > {}", err),
+            HeapAccess(err) => write!(f, "heap access > {}", err),
         }
     }
 }

@@ -2,9 +2,9 @@ use std::io::Write;
 
 use crate::{
     runtime::{
-        Runtime, RuntimeErrorArithmetic, RuntimeErrorIO, RuntimeErrorStackManip, RuntimeReport,
-        RuntimeResult, RuntimeResultArithmetic, RuntimeResultFlowCtrl, RuntimeResultHeapAccess,
-        RuntimeResultIO, RuntimeResultStackManip,
+        Runtime, RuntimeErrorArithmetic, RuntimeErrorFlowCtrl, RuntimeErrorIO,
+        RuntimeErrorStackManip, RuntimeReport, RuntimeResult, RuntimeResultArithmetic,
+        RuntimeResultFlowCtrl, RuntimeResultHeapAccess, RuntimeResultIO, RuntimeResultStackManip,
     },
     statements::{
         Statement, StatementArithmetic, StatementFlowCtrl, StatementHeapAccess, StatementIO,
@@ -18,10 +18,10 @@ pub struct DirectRuntime {
 }
 
 impl DirectRuntime {
-    pub fn new(output: Box<dyn Write>) -> Self {
+    pub fn new(writer: Box<dyn Write>) -> Self {
         Self {
             stack: Vec::new(),
-            writer: output,
+            writer,
         }
     }
 }
@@ -52,6 +52,20 @@ impl DirectRuntime {
         use StatementFlowCtrl::*;
         match stat {
             EndProgram => Ok(RuntimeReport::EndProgram),
+            MarkLabel(label) => Ok(RuntimeReport::MarkLabel(label)),
+            JumpTo(label) => Ok(RuntimeReport::JumpTo(label)),
+            JumpToIfZero(label) => match self.stack.last() {
+                Some(0) => Ok(RuntimeReport::JumpTo(label)),
+                Some(..0 | 1..) => Ok(RuntimeReport::Next),
+                None => Err(RuntimeErrorFlowCtrl::EmptyStack),
+            },
+            JumpToIfNegative(label) => match self.stack.last() {
+                Some(..0) => Ok(RuntimeReport::JumpTo(label)),
+                Some(0..) => Ok(RuntimeReport::Next),
+                None => Err(RuntimeErrorFlowCtrl::EmptyStack),
+            },
+            CallSubroutine(label) => Ok(RuntimeReport::CallSubroutine(label)),
+            ReturnFromSubroutine => Ok(RuntimeReport::ReturnFromSubroutine),
         }
     }
 
@@ -116,7 +130,7 @@ impl DirectRuntime {
                 write!(self.writer, "{i}").unwrap();
                 Ok(RuntimeReport::Next)
             }
-            None => Err(RuntimeErrorIO::ReadEmptyStack),
+            None => Err(RuntimeErrorIO::EmptyStack),
         }
     }
 
@@ -129,7 +143,7 @@ impl DirectRuntime {
                 }
                 None => Err(RuntimeErrorIO::InvalidUTF8Character),
             },
-            None => Err(RuntimeErrorIO::ReadEmptyStack),
+            None => Err(RuntimeErrorIO::EmptyStack),
         }
     }
 

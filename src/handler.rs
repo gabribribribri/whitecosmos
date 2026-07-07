@@ -1,7 +1,9 @@
+use std::collections::HashMap;
+
 use crate::{
     handler_errors::EngineError,
     parser::{ParseResult, Parser},
-    runtime::{Runtime, RuntimeReport},
+    runtime::{Runtime, RuntimeError, RuntimeErrorFlowCtrl, RuntimeReport},
     statements::Statement,
 };
 
@@ -9,6 +11,8 @@ pub struct Handler {
     parser: Box<dyn Parser>,
     runtime: Box<dyn Runtime>,
     statements: Vec<Statement>,
+    labels: HashMap<i32, usize>,
+    callstack: Vec<usize>,
     // maybe we will need to take back stat_index
     // stat_index: usize
 }
@@ -19,6 +23,8 @@ impl Handler {
             parser,
             runtime,
             statements: Vec::new(),
+            labels: HashMap::new(),
+            callstack: Vec::new(),
         }
     }
 
@@ -29,9 +35,27 @@ impl Handler {
 
             let action = self.runtime.run_statement(statement)?;
 
+            use RuntimeReport::*;
             match action {
-                RuntimeReport::Next => stat_index += 1,
-                RuntimeReport::EndProgram => return Ok(()),
+                Next => stat_index += 1,
+                EndProgram => return Ok(()),
+                MarkLabel(label) => _ = self.labels.insert(label, stat_index),
+                JumpTo(label) => match self.labels.get(&label) {
+                    Some(location) => stat_index = *location,
+                    None => return Err(EngineError::Runtime(RuntimeError::FlowCtrl(RuntimeErrorFlowCtrl::LabelNotFound)))
+                }
+                CallSubroutine(label) => match self.labels.get(&label) {
+                    Some(location) => {
+                        self.callstack.push(stat_index);
+                        stat_index = *location;
+                    }
+                    None => return Err(EngineError::Runtime(RuntimeError::FlowCtrl(RuntimeErrorFlowCtrl::LabelNotFound)))
+                }
+                ReturnFromSubroutine => match self.callstack.last() {
+                    Some(location) => stat_index = *location,
+                    None => return Err(EngineError::Runtime(RuntimeError::FlowCtrl(RuntimeErrorFlowCtrl::EmptyCallStack)))
+                }
+
             }
         }
     }

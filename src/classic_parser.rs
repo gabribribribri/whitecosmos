@@ -136,14 +136,14 @@ impl ClassicParser {
     fn parse_flow_control(&mut self) -> ParseResultFlowCtrl {
         match self.next_token()? {
             Space => match self.next_token()? {
-                Space => todo!(),
-                Tab => todo!(),
-                Lf => todo!(),
+                Space => Ok(StatementFlowCtrl::MarkLabel(self.parse_number()?)),
+                Tab => Ok(StatementFlowCtrl::CallSubroutine(self.parse_number()?)),
+                Lf => Ok(StatementFlowCtrl::JumpTo(self.parse_number()?)),
             },
             Tab => match self.next_token()? {
-                Space => todo!(),
-                Tab => todo!(),
-                Lf => Err(ParseErrorFlowCtrl::ForbiddenLF),
+                Space => Ok(StatementFlowCtrl::JumpToIfZero(self.parse_number()?)),
+                Tab => Ok(StatementFlowCtrl::JumpToIfNegative(self.parse_number()?)),
+                Lf => Ok(StatementFlowCtrl::ReturnFromSubroutine),
             },
             Lf => match self.next_token()? {
                 Lf => Ok(StatementFlowCtrl::EndProgram),
