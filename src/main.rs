@@ -2,10 +2,10 @@ use std::io::BufReader;
 use std::{fs::File, path::PathBuf};
 
 use clap::{Parser, Subcommand, ValueEnum};
-use whitecosmos::classic_parser::{ClassicParser, TokenValues};
-use whitecosmos::direct_runtime::DirectRuntime;
-use whitecosmos::handler::Handler;
-use whitecosmos::handler_errors::{EngineError, UsageError};
+use whitecosmos::frontend::{classic_parser::ClassicParser, classic_parser::TokenValues};
+use whitecosmos::backend::interpreter::Interpreter;
+use whitecosmos::core::handler::Handler;
+use whitecosmos::core::handler_errors::{EngineError, UsageError};
 
 #[derive(Parser)]
 #[command(name = "whitecosmos")]
@@ -108,7 +108,7 @@ fn execute_no_subcommand(cli: Cli) -> Result<(), EngineError> {
     };
 
     let runtime = match runtime_type {
-        RuntimeType::Direct => Box::new(DirectRuntime::new(Box::new(std::io::stdout()))),
+        RuntimeType::Direct => Box::new(Interpreter::new(Box::new(std::io::stdout()))),
     };
 
     let mut handler = Handler::new(parser, runtime);

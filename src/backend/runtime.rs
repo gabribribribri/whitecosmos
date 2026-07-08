@@ -1,7 +1,4 @@
-use crate::{
-    handler_errors::EngineError,
-    statements::Statement,
-};
+use crate::{core::handler_errors::EngineError, core::statements::Statement};
 
 ///
 /// RUNTIME
@@ -13,7 +10,7 @@ pub enum RuntimeReport {
     MarkLabel(i32),
     JumpTo(i32),
     CallSubroutine(i32),
-    ReturnFromSubroutine
+    ReturnFromSubroutine,
 }
 
 ///
@@ -97,7 +94,7 @@ impl std::fmt::Display for RuntimeErrorFlowCtrl {
         match self {
             EmptyStack => write!(f, "empty stack, no call possible"),
             EmptyCallStack => write!(f, "empty call stack, cannot return from subroutine"),
-            LabelNotFound => write!(f, "label not found")
+            LabelNotFound => write!(f, "label not found"),
         }
     }
 }

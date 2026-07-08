@@ -1,23 +1,23 @@
 use std::io::Write;
 
 use crate::{
-    runtime::{
+    backend::runtime::{
         Runtime, RuntimeErrorArithmetic, RuntimeErrorFlowCtrl, RuntimeErrorIO,
         RuntimeErrorStackManip, RuntimeReport, RuntimeResult, RuntimeResultArithmetic,
         RuntimeResultFlowCtrl, RuntimeResultHeapAccess, RuntimeResultIO, RuntimeResultStackManip,
     },
-    statements::{
+    core::statements::{
         Statement, StatementArithmetic, StatementFlowCtrl, StatementHeapAccess, StatementIO,
         StatementStackManip,
     },
 };
 
-pub struct DirectRuntime {
+pub struct Interpreter {
     stack: Vec<i32>,
     writer: Box<dyn Write>,
 }
 
-impl DirectRuntime {
+impl Interpreter {
     pub fn new(writer: Box<dyn Write>) -> Self {
         Self {
             stack: Vec::new(),
@@ -26,7 +26,7 @@ impl DirectRuntime {
     }
 }
 
-impl Runtime for DirectRuntime {
+impl Runtime for Interpreter {
     fn run_statement(&mut self, statement: Statement) -> RuntimeResult {
         use Statement::*;
         match statement {
@@ -39,7 +39,7 @@ impl Runtime for DirectRuntime {
     }
 }
 
-impl DirectRuntime {
+impl Interpreter {
     fn run_io(&mut self, stat: StatementIO) -> RuntimeResultIO {
         use StatementIO::*;
         match stat {

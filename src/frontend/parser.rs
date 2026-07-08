@@ -1,8 +1,8 @@
 use std::io;
 
 use crate::{
-    handler_errors::EngineError,
-    statements::{
+    core::handler_errors::EngineError,
+    core::statements::{
         Statement, StatementArithmetic, StatementFlowCtrl, StatementHeapAccess, StatementIO,
         StatementStackManip,
     },
@@ -202,4 +202,13 @@ pub type ParseResultHeapAccess = Result<StatementHeapAccess, ParseErrorHeapAcces
 ///
 pub trait Parser {
     fn next_statement(&mut self) -> ParseResult;
+}
+
+///
+/// Different Tokens
+/// 
+pub enum TokenKind {
+    Lf,
+    Tab,
+    Space,
 }

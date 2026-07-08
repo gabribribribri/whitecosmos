@@ -1,10 +1,10 @@
 use std::collections::HashMap;
 
 use crate::{
-    handler_errors::EngineError,
-    parser::{ParseResult, Parser},
-    runtime::{Runtime, RuntimeError, RuntimeErrorFlowCtrl, RuntimeReport},
-    statements::Statement,
+    core::handler_errors::EngineError,
+    frontend::parser::{ParseResult, Parser},
+    backend::runtime::{Runtime, RuntimeError, RuntimeErrorFlowCtrl, RuntimeReport},
+    core::statements::Statement,
 };
 
 pub struct Handler {
@@ -13,8 +13,6 @@ pub struct Handler {
     statements: Vec<Statement>,
     labels: HashMap<i32, usize>,
     callstack: Vec<usize>,
-    // maybe we will need to take back stat_index
-    // stat_index: usize
 }
 
 impl Handler {
@@ -42,20 +40,31 @@ impl Handler {
                 MarkLabel(label) => _ = self.labels.insert(label, stat_index),
                 JumpTo(label) => match self.labels.get(&label) {
                     Some(location) => stat_index = *location,
-                    None => return Err(EngineError::Runtime(RuntimeError::FlowCtrl(RuntimeErrorFlowCtrl::LabelNotFound)))
-                }
+                    None => {
+                        return Err(EngineError::Runtime(RuntimeError::FlowCtrl(
+                            RuntimeErrorFlowCtrl::LabelNotFound,
+                        )));
+                    }
+                },
                 CallSubroutine(label) => match self.labels.get(&label) {
                     Some(location) => {
                         self.callstack.push(stat_index);
                         stat_index = *location;
                     }
-                    None => return Err(EngineError::Runtime(RuntimeError::FlowCtrl(RuntimeErrorFlowCtrl::LabelNotFound)))
-                }
+                    None => {
+                        return Err(EngineError::Runtime(RuntimeError::FlowCtrl(
+                            RuntimeErrorFlowCtrl::LabelNotFound,
+                        )));
+                    }
+                },
                 ReturnFromSubroutine => match self.callstack.last() {
                     Some(location) => stat_index = *location,
-                    None => return Err(EngineError::Runtime(RuntimeError::FlowCtrl(RuntimeErrorFlowCtrl::EmptyCallStack)))
-                }
-
+                    None => {
+                        return Err(EngineError::Runtime(RuntimeError::FlowCtrl(
+                            RuntimeErrorFlowCtrl::EmptyCallStack,
+                        )));
+                    }
+                },
             }
         }
     }

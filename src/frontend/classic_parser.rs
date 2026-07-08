@@ -1,11 +1,11 @@
 use std::io::{self, Read};
 
-use crate::parser::{
+use crate::frontend::parser::{
     ParseErrorArithmetic, ParseErrorFlowCtrl, ParseErrorIO, ParseErrorStackManip, ParseResult,
     ParseResultArithmetic, ParseResultFlowCtrl, ParseResultHeapAccess, ParseResultIO,
-    ParseResultStackManip, Parser,
+    ParseResultStackManip, Parser, TokenKind,
 };
-use crate::statements::{
+use crate::core::statements::{
     Statement, StatementArithmetic, StatementFlowCtrl, StatementIO, StatementStackManip,
 };
 
@@ -16,13 +16,7 @@ pub struct TokenValues {
     pub space: u8,
 }
 
-enum Token {
-    Lf,
-    Tab,
-    Space,
-}
-
-use Token::*;
+use TokenKind::*;
 
 pub struct ClassicParser {
     // code_index is the LAST READ character. NOT the next one to read
@@ -71,16 +65,16 @@ impl ClassicParser {
         Ok(self.code[self.code_index])
     }
 
-    fn next_token(&mut self) -> Result<Token, io::Error> {
+    fn next_token(&mut self) -> Result<TokenKind, io::Error> {
         loop {
             self.code_index += 1;
             let next_char = self.index_char()?;
             if next_char == self.tokens.lf {
-                return Ok(Token::Lf);
+                return Ok(TokenKind::Lf);
             } else if next_char == self.tokens.tab {
-                return Ok(Token::Tab);
+                return Ok(TokenKind::Tab);
             } else if next_char == self.tokens.space {
-                return Ok(Token::Space);
+                return Ok(TokenKind::Space);
             }
         }
     }

@@ -1,6 +1,6 @@
 use std::io;
 
-use crate::{parser::ParseError, runtime::RuntimeError};
+use crate::{frontend::parser::ParseError, backend::runtime::RuntimeError};
 
 
 ///

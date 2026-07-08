@@ -3,11 +3,11 @@ use std::{fs::File, rc::Rc};
 
 use std::io::{self, Write};
 
-use whitecosmos::handler_errors::EngineError;
+use whitecosmos::core::handler_errors::EngineError;
 use whitecosmos::{
-    classic_parser::{ClassicParser, TokenValues},
-    direct_runtime::DirectRuntime,
-    handler::Handler,
+    backend::interpreter::Interpreter,
+    core::handler::Handler,
+    frontend::classic_parser::{ClassicParser, TokenValues},
 };
 
 struct SharedBuffer(Rc<RefCell<Vec<u8>>>);
@@ -22,13 +22,16 @@ impl Write for SharedBuffer {
     }
 }
 
-fn classic_direct_output_as_string(path: &'static str, tokens: TokenValues) -> Result<String, EngineError> {
+fn classic_direct_output_as_string(
+    path: &'static str,
+    tokens: TokenValues,
+) -> Result<String, EngineError> {
     let file = File::open(path).unwrap();
     let reader = Box::new(io::BufReader::new(file));
     let parser = Box::new(ClassicParser::new(reader, tokens));
     let storage = Rc::new(RefCell::new(Vec::new()));
     let writer = SharedBuffer(storage.clone());
-    let runtime = Box::new(DirectRuntime::new(Box::new(writer)));
+    let runtime = Box::new(Interpreter::new(Box::new(writer)));
     let mut handler = Handler::new(parser, runtime);
     handler.run()?;
     Ok(String::from_utf8(storage.borrow().to_vec()).unwrap())
@@ -52,14 +55,14 @@ mod classic_parser_direct_runtime {
     }
 
     #[test]
-    fn test1()-> Result<(), EngineError>{
+    fn test1() -> Result<(), EngineError> {
         let output = classic_direct_output_as_string("programs/test1.fws", FAKE_WS_TOKENS)?;
         assert_eq!(output, "abc\n2048\n12\n1\n521\n587654321\n");
         Ok(())
     }
 
     #[test]
-    fn arithmetic()-> Result<(), EngineError>{
+    fn arithmetic() -> Result<(), EngineError> {
         // I was too bored to test Modulo and Multiplication
         let output =
             classic_direct_output_as_string("programs/arithmetic_tests.fws", FAKE_WS_TOKENS)?;

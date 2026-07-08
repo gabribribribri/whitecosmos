@@ -1,18 +1,14 @@
 //
-// HANDLER
-// 
-pub mod statements;
-pub mod handler;
-pub mod handler_errors;
+// CORE
+//
+pub mod core;
 
 //
 // PARSERs
 //
-pub mod parser;
-pub mod classic_parser;
+pub mod frontend;
 
 //
-// RUNTIMEs
+// BACKENDs
 //
-pub mod runtime;
-pub mod direct_runtime;
+pub mod backend;
