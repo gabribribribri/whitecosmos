@@ -50,7 +50,11 @@ pub enum RuntimeErrorFlowCtrl {
     EmptyCallStack,
 }
 
-pub enum RuntimeErrorHeapAccess {}
+pub enum RuntimeErrorHeapAccess {
+    EmptyStack,
+    StackTooSmall,
+    NothingAtAddress
+}
 
 ///
 /// DISPLAYING RUNTIME ERRORS
@@ -101,7 +105,12 @@ impl std::fmt::Display for RuntimeErrorFlowCtrl {
 
 impl std::fmt::Display for RuntimeErrorHeapAccess {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        todo!()
+        use RuntimeErrorHeapAccess::*;
+        match self {
+            EmptyStack => write!(f, "empty stackk, unable to store"),
+            StackTooSmall => write!(f, "stack too small, unable to find an address to store to"),
+            NothingAtAddress => write!(f, "nothing at address")
+        }
     }
 }
 

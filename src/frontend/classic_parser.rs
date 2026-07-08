@@ -1,12 +1,10 @@
 use std::io::{self, Read};
 
 use crate::frontend::parser::{
-    ParseErrorArithmetic, ParseErrorFlowCtrl, ParseErrorIO, ParseErrorStackManip, ParseResult,
-    ParseResultArithmetic, ParseResultFlowCtrl, ParseResultHeapAccess, ParseResultIO,
-    ParseResultStackManip, Parser, TokenKind,
+    ParseErrorArithmetic, ParseErrorFlowCtrl, ParseErrorHeapAccess, ParseErrorIO, ParseErrorStackManip, ParseResult, ParseResultArithmetic, ParseResultFlowCtrl, ParseResultHeapAccess, ParseResultIO, ParseResultStackManip, Parser, TokenKind
 };
 use crate::core::statements::{
-    Statement, StatementArithmetic, StatementFlowCtrl, StatementIO, StatementStackManip,
+    Statement, StatementArithmetic, StatementFlowCtrl, StatementHeapAccess, StatementIO, StatementStackManip
 };
 
 #[derive(Copy, Clone, Debug)]
@@ -20,7 +18,7 @@ use TokenKind::*;
 
 pub struct ClassicParser {
     // code_index is the LAST READ character. NOT the next one to read
-    code: [u8; 2048],
+    code: Box<[u8; 4194304]>,
     code_length: usize,
     code_index: usize,
     reader: Box<dyn Read>,
@@ -44,7 +42,7 @@ impl Parser for ClassicParser {
 impl ClassicParser {
     pub fn new(reader: Box<dyn Read>, tokens: TokenValues) -> Self {
         ClassicParser {
-            code: [0; 2048],
+            code: Box::new([0; _]),
             code_length: 0,
             code_index: 0,
             reader,
@@ -55,7 +53,7 @@ impl ClassicParser {
     // WARN This does not support UTF-8 at all. There are possibilities to do very very ugly things..........
     fn index_char(&mut self) -> io::Result<u8> {
         if self.code_length <= self.code_index {
-            let nb_read = self.reader.read(&mut self.code)?;
+            let nb_read = self.reader.read(&mut *self.code)?;
             if nb_read == 0 {
                 return Err(io::Error::new(io::ErrorKind::UnexpectedEof, ""));
             }
@@ -147,7 +145,11 @@ impl ClassicParser {
     }
 
     fn parse_heap_access(&mut self) -> ParseResultHeapAccess {
-        todo!()
+        match self.next_token()? {
+            Space => Ok(StatementHeapAccess::Store),
+            Tab => Ok(StatementHeapAccess::Retrieve),
+            Lf => Err(ParseErrorHeapAccess::ForbiddenLF),
+        }
     }
 
     fn parse_number(&mut self) -> io::Result<i32> {

@@ -35,7 +35,10 @@ pub enum StatementFlowCtrl {
 }
 
 #[derive(Debug, Copy, Clone)]
-pub enum StatementHeapAccess {}
+pub enum StatementHeapAccess {
+    Store,
+    Retrieve,
+}
 
 #[derive(Debug, Copy, Clone)]
 pub enum StatementArithmetic {

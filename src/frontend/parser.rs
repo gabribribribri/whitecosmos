@@ -45,6 +45,7 @@ pub enum ParseErrorFlowCtrl {
 }
 pub enum ParseErrorHeapAccess {
     UnexpectedEOF,
+    ForbiddenLF,
 }
 
 ///
@@ -106,6 +107,7 @@ impl std::fmt::Display for ParseErrorHeapAccess {
         use ParseErrorHeapAccess::*;
         match self {
             UnexpectedEOF => write!(f, "unexpected EOF"),
+            ForbiddenLF => write!(f, "[LF] is not a valid command here")
         }
     }
 }

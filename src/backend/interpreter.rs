@@ -1,10 +1,8 @@
-use std::io::Write;
+use std::{collections::HashMap, io::Write};
 
 use crate::{
     backend::runtime::{
-        Runtime, RuntimeErrorArithmetic, RuntimeErrorFlowCtrl, RuntimeErrorIO,
-        RuntimeErrorStackManip, RuntimeReport, RuntimeResult, RuntimeResultArithmetic,
-        RuntimeResultFlowCtrl, RuntimeResultHeapAccess, RuntimeResultIO, RuntimeResultStackManip,
+        Runtime, RuntimeErrorArithmetic, RuntimeErrorFlowCtrl, RuntimeErrorHeapAccess, RuntimeErrorIO, RuntimeErrorStackManip, RuntimeReport, RuntimeResult, RuntimeResultArithmetic, RuntimeResultFlowCtrl, RuntimeResultHeapAccess, RuntimeResultIO, RuntimeResultStackManip
     },
     core::statements::{
         Statement, StatementArithmetic, StatementFlowCtrl, StatementHeapAccess, StatementIO,
@@ -14,6 +12,7 @@ use crate::{
 
 pub struct Interpreter {
     stack: Vec<i32>,
+    heap: HashMap<i32, i32>,
     writer: Box<dyn Write>,
 }
 
@@ -21,6 +20,7 @@ impl Interpreter {
     pub fn new(writer: Box<dyn Write>) -> Self {
         Self {
             stack: Vec::new(),
+            heap: HashMap::new(),
             writer,
         }
     }
@@ -120,7 +120,32 @@ impl Interpreter {
     }
 
     fn run_heap_access(&mut self, stat: StatementHeapAccess) -> RuntimeResultHeapAccess {
-        todo!()
+        use StatementHeapAccess::*;
+        match stat {
+            Store => {
+                let value = match self.stack.last() {
+                    Some(val) => *val,
+                    None => return Err(RuntimeErrorHeapAccess::EmptyStack)
+                };
+                let location = match self.stack.get(self.stack.len()-2) {
+                    Some(val) => *val,
+                    None => return Err(RuntimeErrorHeapAccess::StackTooSmall),
+                };
+                self.heap.insert(location, value);
+                Ok(RuntimeReport::Next)
+            }
+            Retrieve => {
+                let location = match self.stack.last() {
+                    Some(val) => *val,
+                    None => return Err(RuntimeErrorHeapAccess::StackTooSmall),
+                };
+                match self.heap.get(&location) {
+                    Some(val) => self.stack.push(*val),
+                    None => return Err(RuntimeErrorHeapAccess::NothingAtAddress),
+                }
+                Ok(RuntimeReport::Next)
+            }
+        }
     }
 
     fn pop_stack_output_number(&mut self) -> RuntimeResultIO {
@@ -147,15 +172,15 @@ impl Interpreter {
         }
     }
 
-    fn push_on_stack(&mut self, i: i32) -> RuntimeResultStackManip {
-        self.stack.push(i);
+    fn push_on_stack(&mut self, val: i32) -> RuntimeResultStackManip {
+        self.stack.push(val);
         Ok(RuntimeReport::Next)
     }
 
     fn duplicate_top_stack(&mut self) -> RuntimeResultStackManip {
         match self.stack.last_mut() {
-            Some(i) => {
-                *i *= 2;
+            Some(val) => {
+                *val *= 2;
                 Ok(RuntimeReport::Next)
             }
             None => Err(RuntimeErrorStackManip::EmptyStack),
