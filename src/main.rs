@@ -2,10 +2,10 @@ use std::io::BufReader;
 use std::{fs::File, path::PathBuf};
 
 use clap::{Parser, Subcommand, ValueEnum};
-use whitecosmos::frontend::{classic_parser::ClassicParser, classic_parser::TokenValues};
 use whitecosmos::backend::interpreter::Interpreter;
 use whitecosmos::core::handler::Handler;
 use whitecosmos::core::handler_errors::{EngineError, UsageError};
+use whitecosmos::frontend::{classic_parser::ClassicParser, classic_parser::ParsedLanguage};
 
 #[derive(Parser)]
 #[command(name = "whitecosmos")]
@@ -29,6 +29,7 @@ struct Cli {
 enum ParserType {
     WhiteSpace,
     FakeWhiteSpace,
+    WrittenWhiteSpace,
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
@@ -40,18 +41,6 @@ enum RuntimeType {
 enum WhitecosmosSubcommand {}
 
 fn main() {
-    // let path: String = std::env::args().nth(1).unwrap();
-
-    // let file = File::open(path).unwrap();
-    // let reader = Box::new(io::BufReader::new(file));
-    // let tokens = classic_parser::TokenValues { lf: b'l', tab: b't', space: b's'};
-    // let parser = classic_parser::WSParser::new(reader, tokens);
-
-    // let runtime = direct_runtime::DirectRuntime::new(Box::new(std::io::stdout()));
-
-    // let mut handler = handler::Handler::new(parser, runtime);
-    // handler.run();
-
     let cli = Cli::parse();
 
     if let Some(_) = cli.filename {
@@ -73,8 +62,7 @@ fn main() {
             }
         }
     } else {
-        // SCENARIO 3 : nothing, so error
-        todo!() // figure out how to error properly
+        println!("{}", EngineError::Usage(UsageError::MissingFilename));
     }
 }
 
@@ -90,7 +78,7 @@ fn execute_no_subcommand(cli: Cli) -> Result<(), EngineError> {
 
     let parser = match parser_type {
         ParserType::WhiteSpace => {
-            let tokens = TokenValues {
+            let tokens = ParsedLanguage::ClassicWhitespace {
                 lf: b'\n',
                 tab: b'\t',
                 space: b' ',
@@ -98,12 +86,15 @@ fn execute_no_subcommand(cli: Cli) -> Result<(), EngineError> {
             Box::new(ClassicParser::new(reader, tokens))
         }
         ParserType::FakeWhiteSpace => {
-            let tokens = TokenValues {
+            let tokens = ParsedLanguage::ClassicWhitespace {
                 lf: b'l',
                 tab: b't',
                 space: b's',
             };
             Box::new(ClassicParser::new(reader, tokens))
+        }
+        ParserType::WrittenWhiteSpace => {
+            Box::new(ClassicParser::new(reader, ParsedLanguage::WrittenWhitespace))
         }
     };
 
@@ -129,6 +120,8 @@ fn find_parser_type(cli: &Cli) -> Result<ParserType, UsageError> {
             Ok(ParserType::WhiteSpace)
         } else if extension == "fws" {
             Ok(ParserType::FakeWhiteSpace)
+        } else if extension == "wws" {
+            Ok(ParserType::WrittenWhiteSpace)
         } else {
             Err(UsageError::UnsupportedFileExtension)
         }

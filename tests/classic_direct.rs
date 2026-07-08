@@ -7,7 +7,7 @@ use whitecosmos::core::handler_errors::EngineError;
 use whitecosmos::{
     backend::interpreter::Interpreter,
     core::handler::Handler,
-    frontend::classic_parser::{ClassicParser, TokenValues},
+    frontend::classic_parser::{ClassicParser, ParsedLanguage},
 };
 
 struct SharedBuffer(Rc<RefCell<Vec<u8>>>);
@@ -24,7 +24,7 @@ impl Write for SharedBuffer {
 
 fn classic_direct_output_as_string(
     path: &'static str,
-    tokens: TokenValues,
+    tokens: ParsedLanguage,
 ) -> Result<String, EngineError> {
     let file = File::open(path).unwrap();
     let reader = Box::new(io::BufReader::new(file));
@@ -37,7 +37,7 @@ fn classic_direct_output_as_string(
     Ok(String::from_utf8(storage.borrow().to_vec()).unwrap())
 }
 
-const FAKE_WS_TOKENS: TokenValues = TokenValues {
+const FAKE_WS_TOKENS: ParsedLanguage = ParsedLanguage::ClassicWhitespace  {
     lf: b'l',
     tab: b't',
     space: b's',

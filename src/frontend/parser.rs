@@ -25,27 +25,28 @@ pub enum ParseError {
 ///
 pub enum ParseErrorIMP {
     UnexpectedEOF,
+    OsIoError(io::Error),
 }
 pub enum ParseErrorIO {
-    UnexpectedEOF,
     ForbiddenLF,
+    OsIoError(io::Error),
 }
 pub enum ParseErrorStackManip {
-    UnexpectedEOF,
     ForbiddenTab,
+    OsIoError(io::Error),
 }
 pub enum ParseErrorArithmetic {
-    UnexpectedEOF,
     ForbiddenLF,
+    OsIoError(io::Error),
 }
 pub enum ParseErrorFlowCtrl {
-    UnexpectedEOF,
     WrongProgramEnd,
     ForbiddenLF,
+    OsIoError(io::Error),
 }
 pub enum ParseErrorHeapAccess {
-    UnexpectedEOF,
     ForbiddenLF,
+    OsIoError(io::Error),
 }
 
 ///
@@ -57,6 +58,7 @@ impl std::fmt::Display for ParseErrorIMP {
         use ParseErrorIMP::*;
         match self {
             UnexpectedEOF => write!(f, "unexpected EOF"),
+            OsIoError(err) => write!(f, "OS level IO error > {}", err.to_string()),
         }
     }
 }
@@ -65,8 +67,8 @@ impl std::fmt::Display for ParseErrorIO {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         use ParseErrorIO::*;
         match self {
-            UnexpectedEOF => write!(f, "unexpected EOF"),
             ForbiddenLF => write!(f, "[LF] is not a valid command here"),
+            OsIoError(err) => write!(f, "OS level IO error > {}", err.to_string()),
         }
     }
 }
@@ -75,8 +77,8 @@ impl std::fmt::Display for ParseErrorStackManip {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         use ParseErrorStackManip::*;
         match self {
-            UnexpectedEOF => write!(f, "unexpected EOF"),
             ForbiddenTab => write!(f, "[Tab] is not a valid command here"),
+            OsIoError(err) => write!(f, "OS level IO error > {}", err.to_string()),
         }
     }
 }
@@ -85,8 +87,8 @@ impl std::fmt::Display for ParseErrorArithmetic {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         use ParseErrorArithmetic::*;
         match self {
-            UnexpectedEOF => write!(f, "unexpected EOF"),
             ForbiddenLF => write!(f, "[LF] is not a valid command here"),
+            OsIoError(err) => write!(f, "OS level IO error > {}", err.to_string()),
         }
     }
 }
@@ -95,9 +97,9 @@ impl std::fmt::Display for ParseErrorFlowCtrl {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         use ParseErrorFlowCtrl::*;
         match self {
-            UnexpectedEOF => write!(f, "unexpected EOF"),
             WrongProgramEnd => write!(f, "wrong program end"),
             ForbiddenLF => write!(f, "[LF] is not a valid command here"),
+            OsIoError(err) => write!(f, "OS level IO error > {}", err.to_string()),
         }
     }
 }
@@ -106,8 +108,8 @@ impl std::fmt::Display for ParseErrorHeapAccess {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         use ParseErrorHeapAccess::*;
         match self {
-            UnexpectedEOF => write!(f, "unexpected EOF"),
-            ForbiddenLF => write!(f, "[LF] is not a valid command here")
+            ForbiddenLF => write!(f, "[LF] is not a valid command here"),
+            OsIoError(err) => write!(f, "OS level IO error > {}", err.to_string()),
         }
     }
 }
@@ -142,22 +144,18 @@ macro_rules! impl_ioerror_for {
     ($thing:ident) => {
         impl From<io::Error> for $thing {
             fn from(value: io::Error) -> Self {
-                match value.kind() {
-                    io::ErrorKind::UnexpectedEof => Self::UnexpectedEOF,
-                    _ => panic!("{}", value),
-                }
+                Self::OsIoError(value)
             }
         }
     };
 }
+
 impl From<io::Error> for ParseError {
     fn from(value: io::Error) -> Self {
-        match value.kind() {
-            io::ErrorKind::UnexpectedEof => Self::IMP(ParseErrorIMP::UnexpectedEOF),
-            _ => panic!("{}", value),
-        }
+        Self::IMP(ParseErrorIMP::OsIoError(value))
     }
 }
+
 impl_ioerror_for!(ParseErrorIO);
 impl_ioerror_for!(ParseErrorHeapAccess);
 impl_ioerror_for!(ParseErrorStackManip);
@@ -208,7 +206,7 @@ pub trait Parser {
 
 ///
 /// Different Tokens
-/// 
+///
 pub enum TokenKind {
     Lf,
     Tab,

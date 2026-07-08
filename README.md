@@ -20,3 +20,11 @@ whitecosmos file.vws
 ```
 
 
+# TODO
+- [ ] add location to errors and explanations
+- [ ] visible white space frontend
+- [ ] transpiler backend
+- [ ] jit compiler
+- [ ] aot compiler
+- [ ] memory dump frontend backend
+

@@ -1,10 +1,7 @@
 use std::collections::HashMap;
 
 use crate::{
-    core::handler_errors::EngineError,
-    frontend::parser::{ParseResult, Parser},
-    backend::runtime::{Runtime, RuntimeError, RuntimeErrorFlowCtrl, RuntimeReport},
-    core::statements::Statement,
+    backend::runtime::{Runtime, RuntimeError, RuntimeErrorFlowCtrl, RuntimeReport}, core::{handler_errors::EngineError, statements::Statement}, frontend::parser::{ParseError, ParseResult, Parser}
 };
 
 pub struct Handler {
@@ -66,6 +63,14 @@ impl Handler {
                     }
                 },
             }
+        }
+    }
+
+    fn hunt_labels(&mut self, label_to_find: i32) -> Result<Option<i32>, ParseError> {
+        let mut running_index = self.statements.len()-1;
+        loop {
+            running_index += 1;
+
         }
     }
 

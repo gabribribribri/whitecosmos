@@ -9,22 +9,24 @@ use crate::{frontend::parser::ParseError, backend::runtime::RuntimeError};
 pub enum UsageError {
     UnspecifiedParserType,
     UnsupportedFileExtension,
+    MissingFilename,
     IoError(String),
 }
 
 impl std::fmt::Display for UsageError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         use UsageError::*;
         match self {
             UnspecifiedParserType => write!(f, "unspecified parser type"),
             UnsupportedFileExtension => write!(f, "unsupported file extension"),
-            IoError(s) => write!(f, "IO Error > {}", s)
+            MissingFilename => write!(f, "missing file to execute"),
+            IoError(s) => write!(f, "IO Error > {}", s),
         }
     }
 }
 
 impl std::fmt::Debug for UsageError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{self}")
     }
 }

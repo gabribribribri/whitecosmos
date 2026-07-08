@@ -1,17 +1,19 @@
 use std::io::{self, Read};
 
-use crate::frontend::parser::{
-    ParseErrorArithmetic, ParseErrorFlowCtrl, ParseErrorHeapAccess, ParseErrorIO, ParseErrorStackManip, ParseResult, ParseResultArithmetic, ParseResultFlowCtrl, ParseResultHeapAccess, ParseResultIO, ParseResultStackManip, Parser, TokenKind
-};
 use crate::core::statements::{
-    Statement, StatementArithmetic, StatementFlowCtrl, StatementHeapAccess, StatementIO, StatementStackManip
+    Statement, StatementArithmetic, StatementFlowCtrl, StatementHeapAccess, StatementIO,
+    StatementStackManip,
+};
+use crate::frontend::parser::{
+    ParseErrorArithmetic, ParseErrorFlowCtrl, ParseErrorHeapAccess, ParseErrorIO,
+    ParseErrorStackManip, ParseResult, ParseResultArithmetic, ParseResultFlowCtrl,
+    ParseResultHeapAccess, ParseResultIO, ParseResultStackManip, Parser, TokenKind,
 };
 
 #[derive(Copy, Clone, Debug)]
-pub struct TokenValues {
-    pub lf: u8,
-    pub tab: u8,
-    pub space: u8,
+pub enum ParsedLanguage {
+    WrittenWhitespace,
+    ClassicWhitespace { lf: u8, tab: u8, space: u8 },
 }
 
 use TokenKind::*;
@@ -22,7 +24,7 @@ pub struct ClassicParser {
     code_length: usize,
     code_index: usize,
     reader: Box<dyn Read>,
-    tokens: TokenValues,
+    language: ParsedLanguage,
 }
 
 impl Parser for ClassicParser {
@@ -40,22 +42,26 @@ impl Parser for ClassicParser {
 }
 
 impl ClassicParser {
-    pub fn new(reader: Box<dyn Read>, tokens: TokenValues) -> Self {
+    pub fn new(reader: Box<dyn Read>, language: ParsedLanguage) -> Self {
         ClassicParser {
             code: Box::new([0; _]),
             code_length: 0,
             code_index: 0,
             reader,
-            tokens,
+            language,
         }
     }
 
     // WARN This does not support UTF-8 at all. There are possibilities to do very very ugly things..........
-    fn index_char(&mut self) -> io::Result<u8> {
+    fn next_char(&mut self) -> io::Result<u8> {
+        self.code_index += 1;
         if self.code_length <= self.code_index {
             let nb_read = self.reader.read(&mut *self.code)?;
             if nb_read == 0 {
-                return Err(io::Error::new(io::ErrorKind::UnexpectedEof, ""));
+                return Err(io::Error::new(
+                    io::ErrorKind::UnexpectedEof,
+                    "reached end of file",
+                ));
             }
             self.code_length = nb_read;
             self.code_index = 0;
@@ -64,14 +70,42 @@ impl ClassicParser {
     }
 
     fn next_token(&mut self) -> Result<TokenKind, io::Error> {
+        use ParsedLanguage::*;
+        match self.language {
+            WrittenWhitespace => self.next_wws_token(),
+            ClassicWhitespace { lf, tab, space } => self.next_classic_token(lf, tab, space),
+        }
+    }
+
+    fn next_wws_token(&mut self) -> Result<TokenKind, io::Error> {
         loop {
-            self.code_index += 1;
-            let next_char = self.index_char()?;
-            if next_char == self.tokens.lf {
+            if self.next_char()? != b'[' {
+                continue;
+            }
+            let mut token_val = [0; 6];
+            for i  in 0..6 {
+                token_val[i] = self.next_char()?;
+                if &token_val[..3] == b"LF]" {
+                    return Ok(TokenKind::Lf);
+                } else if &token_val[..4] == b"Tab]" {
+                    return Ok(TokenKind::Tab);
+                } else if &token_val[..6] == b"Space]" {
+                    return Ok(TokenKind::Space);
+                }
+            }
+            return Err(io::Error::new(io::ErrorKind::InvalidData, "error while parsing token"))
+
+        }
+    }
+
+    fn next_classic_token(&mut self, lf: u8, tab: u8, space: u8) -> Result<TokenKind, io::Error> {
+        loop {
+            let next_char = self.next_char()?;
+            if next_char == lf {
                 return Ok(TokenKind::Lf);
-            } else if next_char == self.tokens.tab {
+            } else if next_char == tab {
                 return Ok(TokenKind::Tab);
-            } else if next_char == self.tokens.space {
+            } else if next_char == space {
                 return Ok(TokenKind::Space);
             }
         }
