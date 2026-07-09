@@ -53,6 +53,8 @@ pub enum StatementArithmetic {
 pub enum StatementIO {
     PopStackOutputNumber,
     PopStackOutputChar,
+    ReadNumberStoreOnHeap,
+    ReadCharStoreOnHeap
 }
 
 ///

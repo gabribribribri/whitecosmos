@@ -119,8 +119,8 @@ impl ClassicParser {
                 Lf => Err(ParseErrorIO::ForbiddenLF),
             },
             Tab => match self.next_token()? {
-                Tab => todo!(),
-                Space => todo!(),
+                Tab => Ok(StatementIO::ReadNumberStoreOnHeap),
+                Space => Ok(StatementIO::ReadCharStoreOnHeap),
                 Lf => Err(ParseErrorIO::ForbiddenLF),
             },
             Lf => Err(ParseErrorIO::ForbiddenLF),

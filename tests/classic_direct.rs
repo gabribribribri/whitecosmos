@@ -1,8 +1,8 @@
-use std::cell::RefCell;
-use std::{fs::File, rc::Rc};
+use std::{fs::File};
 
-use std::io::{self, Write};
+use std::io::{self};
 
+use whitecosmos::backend::runtime::SharedStorage;
 use whitecosmos::core::handler_errors::EngineError;
 use whitecosmos::{
     backend::interpreter::Interpreter,
@@ -10,17 +10,6 @@ use whitecosmos::{
     frontend::classic_parser::{ClassicParser, ParsedLanguage},
 };
 
-struct SharedBuffer(Rc<RefCell<Vec<u8>>>);
-
-impl Write for SharedBuffer {
-    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        self.0.borrow_mut().write(buf)
-    }
-
-    fn flush(&mut self) -> io::Result<()> {
-        self.0.borrow_mut().flush()
-    }
-}
 
 fn classic_direct_output_as_string(
     path: &'static str,
@@ -29,12 +18,11 @@ fn classic_direct_output_as_string(
     let file = File::open(path).unwrap();
     let reader = Box::new(io::BufReader::new(file));
     let parser = Box::new(ClassicParser::new(reader, tokens));
-    let storage = Rc::new(RefCell::new(Vec::new()));
-    let writer = SharedBuffer(storage.clone());
-    let runtime = Box::new(Interpreter::new(Box::new(writer)));
+    let storage = SharedStorage::new();
+    let runtime = Box::new(Interpreter::new(Box::new(std::io::stdin()), Box::new(storage.create_writer())));
     let mut handler = Handler::new(parser, runtime);
     handler.run()?;
-    Ok(String::from_utf8(storage.borrow().to_vec()).unwrap())
+    Ok(storage.data_as_string().unwrap())
 }
 
 const FAKE_WS_TOKENS: ParsedLanguage = ParsedLanguage::ClassicWhitespace  {
@@ -55,7 +43,7 @@ mod classic_parser_direct_runtime {
     }
 
     #[test]
-    fn test1() -> Result<(), EngineError> {
+    fn basic_features() -> Result<(), EngineError> {
         let output = classic_direct_output_as_string("programs/test1.fws", FAKE_WS_TOKENS)?;
         assert_eq!(output, "abc\n2048\n12\n1\n521\n587654321\n");
         Ok(())

@@ -1,3 +1,9 @@
+use std::{
+    cell::RefCell,
+    io::{self, Write},
+    rc::Rc, string::FromUtf8Error,
+};
+
 use crate::{core::handler_errors::EngineError, core::statements::Statement};
 
 ///
@@ -30,6 +36,7 @@ pub enum RuntimeError {
 pub enum RuntimeErrorIO {
     EmptyStack,
     InvalidUTF8Character,
+    EmptyReader
 }
 
 pub enum RuntimeErrorStackManip {
@@ -53,7 +60,7 @@ pub enum RuntimeErrorFlowCtrl {
 pub enum RuntimeErrorHeapAccess {
     EmptyStack,
     StackTooSmall,
-    NothingAtAddress
+    NothingAtAddress,
 }
 
 ///
@@ -65,6 +72,7 @@ impl std::fmt::Display for RuntimeErrorIO {
         match self {
             EmptyStack => write!(f, "read empty stack"),
             InvalidUTF8Character => write!(f, "invalid UTF-8 character"),
+            EmptyReader => write!(f, "empty reader"),
         }
     }
 }
@@ -109,7 +117,7 @@ impl std::fmt::Display for RuntimeErrorHeapAccess {
         match self {
             EmptyStack => write!(f, "empty stackk, unable to store"),
             StackTooSmall => write!(f, "stack too small, unable to find an address to store to"),
-            NothingAtAddress => write!(f, "nothing at address")
+            NothingAtAddress => write!(f, "nothing at address"),
         }
     }
 }
@@ -175,4 +183,40 @@ pub type RuntimeResultHeapAccess = Result<RuntimeReport, RuntimeErrorHeapAccess>
 ///
 pub trait Runtime {
     fn run_statement(&mut self, statement: Statement) -> Result<RuntimeReport, RuntimeError>;
+}
+
+///
+/// Proxy struct to retrieve data written to by the runtime
+///
+#[derive(Clone)]
+pub struct SharedStorage {
+    val: Rc<RefCell<Vec<u8>>>,
+}
+
+impl SharedStorage {
+    pub fn new() -> Self {
+        SharedStorage { val: Rc::new(RefCell::new(Vec::new())) }
+    }
+
+    pub fn data(&self) -> Vec<u8> {
+        self.val.borrow().clone()
+    }
+
+    pub fn data_as_string(&self) -> Result<String, FromUtf8Error> {
+        String::from_utf8(self.data())
+    }
+
+    pub fn create_writer(&self) -> Box<Self> {
+        Box::new(self.clone())
+    }
+}
+
+impl Write for SharedStorage {
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        self.val.borrow_mut().write(buf)
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        self.val.borrow_mut().flush()
+    }
 }

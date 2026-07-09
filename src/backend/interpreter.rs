@@ -1,4 +1,4 @@
-use std::{collections::HashMap, io::Write};
+use std::{collections::HashMap, io::{Bytes, Read, Write}};
 
 use crate::{
     backend::runtime::{
@@ -13,14 +13,16 @@ use crate::{
 pub struct Interpreter {
     stack: Vec<i32>,
     heap: HashMap<i32, i32>,
+    reader: Box<dyn Read>,
     writer: Box<dyn Write>,
 }
 
 impl Interpreter {
-    pub fn new(writer: Box<dyn Write>) -> Self {
+    pub fn new(reader: Box<dyn Read>, writer: Box<dyn Write>) -> Self {
         Self {
             stack: Vec::new(),
             heap: HashMap::new(),
+            reader,
             writer,
         }
     }
@@ -45,6 +47,8 @@ impl Interpreter {
         match stat {
             PopStackOutputNumber => self.pop_stack_output_number(),
             PopStackOutputChar => self.pop_stack_output_char(),
+            ReadCharStoreOnHeap => self.read_char_store_on_heap(),
+            ReadNumberStoreOnHeap => self.read_number_store_on_heap()
         }
     }
 
@@ -170,6 +174,33 @@ impl Interpreter {
             },
             None => Err(RuntimeErrorIO::EmptyStack),
         }
+    }
+
+    fn read_char_store_on_heap(&mut self) -> RuntimeResultIO {
+        todo!();
+
+        let address = match self.stack.pop() {
+            Some(val) => val,
+            None => return Err(RuntimeErrorIO::EmptyStack)
+        };
+        
+        
+        match self.reader.bytes().next() {
+            Some(Ok(ch)) => {
+                self.heap.insert(address, ch as i32);
+                Ok(RuntimeReport::Next)
+            },
+            Some(Err(err)) => {
+                panic!("wtf even is this error bro : {}", err)
+            }
+            None => {
+                Err(RuntimeErrorIO::EmptyReader)
+            }
+        }
+    }
+
+    fn read_number_store_on_heap(&self) -> RuntimeResultIO {
+        todo!()
     }
 
     fn push_on_stack(&mut self, val: i32) -> RuntimeResultStackManip {

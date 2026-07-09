@@ -99,7 +99,7 @@ fn execute_no_subcommand(cli: Cli) -> Result<(), EngineError> {
     };
 
     let runtime = match runtime_type {
-        RuntimeType::Direct => Box::new(Interpreter::new(Box::new(std::io::stdout()))),
+        RuntimeType::Direct => Box::new(Interpreter::new(Box::new(std::io::stdin()), Box::new(std::io::stdout()))),
     };
 
     let mut handler = Handler::new(parser, runtime);
