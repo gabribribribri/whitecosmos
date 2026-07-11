@@ -1,4 +1,4 @@
-use std::{collections::HashMap, io::{Bytes, Read, Write}};
+use std::{collections::HashMap, io::{BufReader, Read, Write}};
 
 use crate::{
     backend::runtime::{
@@ -13,18 +13,19 @@ use crate::{
 pub struct Interpreter {
     stack: Vec<i32>,
     heap: HashMap<i32, i32>,
-    reader: Box<dyn Read>,
-    writer: Box<dyn Write>,
+    input: BufReader<Box<dyn Read>>,
+    output: Box<dyn Write>,
 }
 
 impl Interpreter {
-    pub fn new(reader: Box<dyn Read>, writer: Box<dyn Write>) -> Self {
+    pub fn new(input: Box<dyn Read>, output: Box<dyn Write>) -> Self {
         Self {
             stack: Vec::new(),
             heap: HashMap::new(),
-            reader,
-            writer,
+            input: BufReader::new(input),
+            output,
         }
+        
     }
 }
 
@@ -156,7 +157,7 @@ impl Interpreter {
         // Should we pop the last element ?
         match self.stack.pop() {
             Some(i) => {
-                write!(self.writer, "{i}").unwrap();
+                write!(self.output, "{i}").unwrap();
                 Ok(RuntimeReport::Next)
             }
             None => Err(RuntimeErrorIO::EmptyStack),
@@ -167,7 +168,7 @@ impl Interpreter {
         match self.stack.pop() {
             Some(i) => match char::from_u32(i as u32) {
                 Some(c) => {
-                    write!(self.writer, "{c}").unwrap();
+                    write!(self.output, "{c}").unwrap();
                     Ok(RuntimeReport::Next)
                 }
                 None => Err(RuntimeErrorIO::InvalidUTF8Character),
@@ -185,7 +186,7 @@ impl Interpreter {
         };
         
         
-        match self.reader.bytes().next() {
+        match self.input.bytes().next() {
             Some(Ok(ch)) => {
                 self.heap.insert(address, ch as i32);
                 Ok(RuntimeReport::Next)

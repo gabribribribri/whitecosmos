@@ -1,4 +1,4 @@
-use std::io::{self, Read};
+use std::io::{self, BufReader, Read};
 
 use crate::core::statements::{
     Statement, StatementArithmetic, StatementFlowCtrl, StatementHeapAccess, StatementIO,
@@ -19,11 +19,7 @@ pub enum ParsedLanguage {
 use TokenKind::*;
 
 pub struct ClassicParser {
-    // code_index is the LAST READ character. NOT the next one to read
-    code: Box<[u8; 4194304]>,
-    code_length: usize,
-    code_index: usize,
-    reader: Box<dyn Read>,
+    reader: BufReader<Box<dyn Read>>,
     language: ParsedLanguage,
 }
 
@@ -44,29 +40,16 @@ impl Parser for ClassicParser {
 impl ClassicParser {
     pub fn new(reader: Box<dyn Read>, language: ParsedLanguage) -> Self {
         ClassicParser {
-            code: Box::new([0; _]),
-            code_length: 0,
-            code_index: 0,
-            reader,
+            reader: BufReader::new(reader),
             language,
         }
     }
 
     // WARN This does not support UTF-8 at all. There are possibilities to do very very ugly things..........
     fn next_char(&mut self) -> io::Result<u8> {
-        self.code_index += 1;
-        if self.code_length <= self.code_index {
-            let nb_read = self.reader.read(&mut *self.code)?;
-            if nb_read == 0 {
-                return Err(io::Error::new(
-                    io::ErrorKind::UnexpectedEof,
-                    "reached end of file",
-                ));
-            }
-            self.code_length = nb_read;
-            self.code_index = 0;
-        }
-        Ok(self.code[self.code_index])
+        let mut buf = [0; 1];
+        self.reader.read_exact(&mut buf)?;
+        Ok(buf[0])
     }
 
     fn next_token(&mut self) -> Result<TokenKind, io::Error> {
@@ -83,7 +66,7 @@ impl ClassicParser {
                 continue;
             }
             let mut token_val = [0; 6];
-            for i  in 0..6 {
+            for i in 0..6 {
                 token_val[i] = self.next_char()?;
                 if &token_val[..3] == b"LF]" {
                     return Ok(TokenKind::Lf);
@@ -93,8 +76,10 @@ impl ClassicParser {
                     return Ok(TokenKind::Space);
                 }
             }
-            return Err(io::Error::new(io::ErrorKind::InvalidData, "error while parsing token"))
-
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "error while parsing token",
+            ));
         }
     }
 

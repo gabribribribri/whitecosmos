@@ -1,6 +1,5 @@
 use std::{fs::File};
 
-use std::io::{self};
 
 use whitecosmos::backend::runtime::SharedStorage;
 use whitecosmos::core::handler_errors::EngineError;
@@ -15,8 +14,7 @@ fn classic_direct_output_as_string(
     path: &'static str,
     tokens: ParsedLanguage,
 ) -> Result<String, EngineError> {
-    let file = File::open(path).unwrap();
-    let reader = Box::new(io::BufReader::new(file));
+    let reader = Box::new(File::open(path)?);
     let parser = Box::new(ClassicParser::new(reader, tokens));
     let storage = SharedStorage::new();
     let runtime = Box::new(Interpreter::new(Box::new(std::io::stdin()), Box::new(storage.create_writer())));
@@ -44,7 +42,7 @@ mod classic_parser_direct_runtime {
 
     #[test]
     fn basic_features() -> Result<(), EngineError> {
-        let output = classic_direct_output_as_string("programs/test1.fws", FAKE_WS_TOKENS)?;
+        let output = classic_direct_output_as_string("programs/basic_features.fws", FAKE_WS_TOKENS)?;
         assert_eq!(output, "abc\n2048\n12\n1\n521\n587654321\n");
         Ok(())
     }
