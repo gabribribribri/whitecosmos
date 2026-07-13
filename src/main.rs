@@ -27,9 +27,12 @@ struct Cli {
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
 enum ParserType {
+    #[value(alias = "ws")]
     WhiteSpace,
+    #[value(alias = "fws")]
     FakeWhiteSpace,
-    WrittenWhiteSpace,
+    #[value(alias = "bws")]
+    BracketWhiteSpace,
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
@@ -62,7 +65,7 @@ fn main() {
             }
         }
     } else {
-        println!("{}", EngineError::Usage(UsageError::MissingFilename));
+        println!("{}", EngineError::usage(UsageError::MissingFilename));
     }
 }
 
@@ -93,13 +96,17 @@ fn execute_no_subcommand(cli: Cli) -> Result<(), EngineError> {
             };
             Box::new(ClassicParser::new(reader, tokens))
         }
-        ParserType::WrittenWhiteSpace => {
-            Box::new(ClassicParser::new(reader, ParsedLanguage::WrittenWhitespace))
-        }
+        ParserType::BracketWhiteSpace => Box::new(ClassicParser::new(
+            reader,
+            ParsedLanguage::WrittenWhitespace,
+        )),
     };
 
     let runtime = match runtime_type {
-        RuntimeType::Direct => Box::new(Interpreter::new(Box::new(std::io::stdin()), Box::new(std::io::stdout()))),
+        RuntimeType::Direct => Box::new(Interpreter::new(
+            Box::new(std::io::stdin()),
+            Box::new(std::io::stdout()),
+        )),
     };
 
     let mut handler = Handler::new(parser, runtime);
@@ -120,8 +127,8 @@ fn find_parser_type(cli: &Cli) -> Result<ParserType, UsageError> {
             Ok(ParserType::WhiteSpace)
         } else if extension == "fws" {
             Ok(ParserType::FakeWhiteSpace)
-        } else if extension == "wws" {
-            Ok(ParserType::WrittenWhiteSpace)
+        } else if extension == "bws" {
+            Ok(ParserType::BracketWhiteSpace)
         } else {
             Err(UsageError::UnsupportedFileExtension)
         }

@@ -1,12 +1,12 @@
 use std::collections::HashMap;
 
 use crate::{
-    backend::runtime::{Runtime, RuntimeError, RuntimeErrorFlowCtrl, RuntimeReport},
+    backend::runtime::{Runtime, RuntimeErrorFlowCtrl, RuntimeReport},
     core::{
-        handler_errors::EngineError,
+        handler_errors::{EngineError, EngineErrorKind},
         statements::{Statement, StatementFlowCtrl},
     },
-    frontend::parser::{ParseError, ParseResult, Parser},
+    frontend::parser::{ParseError, Parser},
 };
 
 pub struct Handler {
@@ -16,6 +16,8 @@ pub struct Handler {
     labels: HashMap<i32, usize>,
     callstack: Vec<usize>,
 }
+
+type ProgramContinue = bool;
 
 impl Handler {
     pub fn new(parser: Box<dyn Parser>, runtime: Box<dyn Runtime>) -> Self {
@@ -31,47 +33,70 @@ impl Handler {
     pub fn run(&mut self) -> Result<(), EngineError> {
         let mut stat_index = 0;
         loop {
-            let statement = self.read_statement(stat_index)?;
+            let statement = match self.read_statement(stat_index) {
+                Ok(stat) => stat,
+                Err(e) => return EngineError::err(stat_index, e),
+            };
 
-            let action = self.runtime.run_statement(statement)?;
+            let action = match self.runtime.run_statement(statement) {
+                Ok(act) => act,
+                Err(e) => return EngineError::err(stat_index, e),
+            };
 
-            use RuntimeReport::*;
-            match action {
-                Next => (),
-                EndProgram => return Ok(()),
-                MarkLabel(label) => _ = self.labels.insert(label, stat_index),
-                JumpTo(label) => match self.labels.get(&label) {
-                    Some(location) => stat_index = *location,
-                    None => match self.hunt_label(label)? {
-                        Some(location) => stat_index = location,
-                        None => {
-                            return Err(EngineError::Runtime(RuntimeError::FlowCtrl(
-                                RuntimeErrorFlowCtrl::LabelNotFound,
-                            )));
-                        }
-                    },
-                },
-                CallSubroutine(label) => match self.labels.get(&label) {
-                    Some(location) => {
-                        self.callstack.push(stat_index);
-                        stat_index = *location;
-                    }
-                    None => {
-                        return Err(EngineError::Runtime(RuntimeError::FlowCtrl(
-                            RuntimeErrorFlowCtrl::LabelNotFound,
-                        )));
-                    }
-                },
-                ReturnFromSubroutine => match self.callstack.last() {
-                    Some(location) => stat_index = *location,
-                    None => {
-                        return Err(EngineError::Runtime(RuntimeError::FlowCtrl(
-                            RuntimeErrorFlowCtrl::EmptyCallStack,
-                        )));
-                    }
-                },
+            match self.handle_runtime_report(action, &mut stat_index) {
+                Ok(false) => return Ok(()),
+                Ok(true) => (),
+                Err(e) => return EngineError::err(stat_index, e),
             }
+
             stat_index += 1;
+        }
+    }
+
+    ///
+    /// Returns a Result of if the program will continue and the appropriate error
+    ///
+    fn handle_runtime_report(
+        &mut self,
+        action: RuntimeReport,
+        stat_index: &mut usize,
+    ) -> Result<ProgramContinue, EngineErrorKind> {
+        use RuntimeReport::*;
+        match action {
+            Next => Ok(true),
+            EndProgram => return Ok(false),
+            MarkLabel(label) => {
+                _ = self.labels.insert(label, *stat_index);
+                Ok(true)
+            }
+            JumpTo(label) => match self.labels.get(&label) {
+                Some(location) => {
+                    *stat_index = *location;
+                    Ok(true)
+                }
+                None => match self.hunt_label(label)? {
+                    Some(location) => {
+                        *stat_index = location;
+                        Ok(true)
+                    }
+                    None => return Err(RuntimeErrorFlowCtrl::LabelNotFound.into()),
+                },
+            },
+            CallSubroutine(label) => match self.labels.get(&label) {
+                Some(location) => {
+                    self.callstack.push(*stat_index);
+                    *stat_index = *location;
+                    Ok(true)
+                }
+                None => return Err(RuntimeErrorFlowCtrl::LabelNotFound.into()),
+            },
+            ReturnFromSubroutine => match self.callstack.last() {
+                Some(location) => {
+                    *stat_index = *location;
+                    Ok(true)
+                }
+                None => return Err(RuntimeErrorFlowCtrl::EmptyCallStack.into()),
+            },
         }
     }
 
@@ -92,7 +117,7 @@ impl Handler {
         todo!() // TODO find a way to exit properly
     }
 
-    fn read_statement(&mut self, stat_index: usize) -> ParseResult {
+    fn read_statement(&mut self, stat_index: usize) -> Result<Statement, ParseError> {
         if stat_index < self.statements.len() {
             Ok(self.statements[stat_index])
         } else if stat_index == self.statements.len() {

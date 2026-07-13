@@ -1,8 +1,13 @@
-use std::{collections::HashMap, io::{BufReader, Read, Write}};
+use std::{
+    collections::HashMap, io::{ BufRead, BufReader, Read, Write}
+};
 
 use crate::{
     backend::runtime::{
-        Runtime, RuntimeErrorArithmetic, RuntimeErrorFlowCtrl, RuntimeErrorHeapAccess, RuntimeErrorIO, RuntimeErrorStackManip, RuntimeReport, RuntimeResult, RuntimeResultArithmetic, RuntimeResultFlowCtrl, RuntimeResultHeapAccess, RuntimeResultIO, RuntimeResultStackManip
+        Runtime, RuntimeErrorArithmetic, RuntimeErrorFlowCtrl, RuntimeErrorHeap,
+        RuntimeErrorIO, RuntimeErrorStackManip, RuntimeReport, RuntimeResult,
+        RuntimeResultArithmetic, RuntimeResultFlowCtrl, RuntimeResultHeapAccess, RuntimeResultIO,
+        RuntimeResultStackManip,
     },
     core::statements::{
         Statement, StatementArithmetic, StatementFlowCtrl, StatementHeapAccess, StatementIO,
@@ -25,7 +30,6 @@ impl Interpreter {
             input: BufReader::new(input),
             output,
         }
-        
     }
 }
 
@@ -49,7 +53,7 @@ impl Interpreter {
             PopStackOutputNumber => self.pop_stack_output_number(),
             PopStackOutputChar => self.pop_stack_output_char(),
             ReadCharStoreOnHeap => self.read_char_store_on_heap(),
-            ReadNumberStoreOnHeap => self.read_number_store_on_heap()
+            ReadNumberStoreOnHeap => self.read_number_store_on_heap(),
         }
     }
 
@@ -130,11 +134,11 @@ impl Interpreter {
             Store => {
                 let value = match self.stack.last() {
                     Some(val) => *val,
-                    None => return Err(RuntimeErrorHeapAccess::EmptyStack)
+                    None => return Err(RuntimeErrorHeap::EmptyStack),
                 };
-                let location = match self.stack.get(self.stack.len()-2) {
+                let location = match self.stack.get(self.stack.len() - 2) {
                     Some(val) => *val,
-                    None => return Err(RuntimeErrorHeapAccess::StackTooSmall),
+                    None => return Err(RuntimeErrorHeap::StackTooSmall),
                 };
                 self.heap.insert(location, value);
                 Ok(RuntimeReport::Next)
@@ -142,11 +146,11 @@ impl Interpreter {
             Retrieve => {
                 let location = match self.stack.last() {
                     Some(val) => *val,
-                    None => return Err(RuntimeErrorHeapAccess::StackTooSmall),
+                    None => return Err(RuntimeErrorHeap::StackTooSmall),
                 };
                 match self.heap.get(&location) {
                     Some(val) => self.stack.push(*val),
-                    None => return Err(RuntimeErrorHeapAccess::NothingAtAddress),
+                    None => return Err(RuntimeErrorHeap::NothingAtAddress),
                 }
                 Ok(RuntimeReport::Next)
             }
@@ -171,37 +175,66 @@ impl Interpreter {
                     write!(self.output, "{c}").unwrap();
                     Ok(RuntimeReport::Next)
                 }
-                None => Err(RuntimeErrorIO::InvalidUTF8Character),
+                None => Err(RuntimeErrorIO::InvalidStoredUtf8Character),
             },
             None => Err(RuntimeErrorIO::EmptyStack),
         }
     }
 
     fn read_char_store_on_heap(&mut self) -> RuntimeResultIO {
-        todo!();
-
         let address = match self.stack.pop() {
             Some(val) => val,
-            None => return Err(RuntimeErrorIO::EmptyStack)
+            None => return Err(RuntimeErrorIO::EmptyStack),
         };
-        
-        
-        match self.input.bytes().next() {
-            Some(Ok(ch)) => {
-                self.heap.insert(address, ch as i32);
-                Ok(RuntimeReport::Next)
-            },
-            Some(Err(err)) => {
-                panic!("wtf even is this error bro : {}", err)
-            }
-            None => {
-                Err(RuntimeErrorIO::EmptyReader)
-            }
+
+        let mut buf = [0; 4];
+
+        self.input.read_exact(&mut buf[0..1])?;
+
+        let len = if buf[0] & 0x80 == 0 {
+            1 // ASCII
+        } else if buf[0] & 0xe0 == 0xc0 {
+            2
+        } else if buf[0] & 0xf0 == 0xe0 {
+            3
+        } else if buf[0] & 0xf8 == 0xf0 {
+            4
+        } else {
+            return Err(RuntimeErrorIO::InvalidUtf8StartByte);
+        };
+
+        if len > 1 {
+            self.input.read_exact(&mut buf[1..len])?
         }
+
+        let s = match std::str::from_utf8(&buf[..len]) {
+            Ok(s) => s,
+            Err(e) => return Err(RuntimeErrorIO::ParseUtf8(e)),
+        };
+
+        let c = match s.chars().next() {
+            Some(c) => c,
+            None => panic!("Bro you literally just parsed a char wdym there's no char"),
+        };
+
+        self.heap.insert(address, c as i32);
+
+        Ok(RuntimeReport::Next)
     }
 
-    fn read_number_store_on_heap(&self) -> RuntimeResultIO {
-        todo!()
+    fn read_number_store_on_heap(&mut self) -> RuntimeResultIO {
+        let address = match self.stack.pop() {
+            Some(val) => val,
+            None => return Err(RuntimeErrorIO::EmptyStack),
+        };
+
+        let mut s = String::new();
+        self.input.read_line(&mut s)?;
+        let number = s.trim().parse()?;
+
+        self.heap.insert(address, number);
+
+        Ok(RuntimeReport::Next)
     }
 
     fn push_on_stack(&mut self, val: i32) -> RuntimeResultStackManip {

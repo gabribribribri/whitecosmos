@@ -1,10 +1,8 @@
 use std::{
-    cell::RefCell,
-    io::{self, Write},
-    rc::Rc, string::FromUtf8Error,
+    cell::RefCell, io::{self, Write}, num::ParseIntError, rc::Rc, str::Utf8Error, string::FromUtf8Error
 };
 
-use crate::{core::handler_errors::EngineError, core::statements::Statement};
+use crate::core::{handler_errors::{EngineErrorKind}, statements::Statement};
 
 ///
 /// RUNTIME
@@ -27,7 +25,7 @@ pub enum RuntimeError {
     StackManip(RuntimeErrorStackManip),
     Arithmetic(RuntimeErrorArithmetic),
     FlowCtrl(RuntimeErrorFlowCtrl),
-    HeapAccess(RuntimeErrorHeapAccess),
+    Heap(RuntimeErrorHeap),
 }
 
 ///
@@ -35,8 +33,12 @@ pub enum RuntimeError {
 ///
 pub enum RuntimeErrorIO {
     EmptyStack,
-    InvalidUTF8Character,
-    EmptyReader
+    InvalidUtf8StartByte,
+    InvalidStoredUtf8Character,
+    ParseUtf8(Utf8Error),
+    EmptyInput,
+    OsIoError(io::Error),
+    ParseIntError(ParseIntError),
 }
 
 pub enum RuntimeErrorStackManip {
@@ -57,7 +59,7 @@ pub enum RuntimeErrorFlowCtrl {
     EmptyCallStack,
 }
 
-pub enum RuntimeErrorHeapAccess {
+pub enum RuntimeErrorHeap {
     EmptyStack,
     StackTooSmall,
     NothingAtAddress,
@@ -71,8 +73,12 @@ impl std::fmt::Display for RuntimeErrorIO {
         use RuntimeErrorIO::*;
         match self {
             EmptyStack => write!(f, "read empty stack"),
-            InvalidUTF8Character => write!(f, "invalid UTF-8 character"),
-            EmptyReader => write!(f, "empty reader"),
+            ParseUtf8(err) => write!(f, "parsing utf-8 text > {}", err),
+            EmptyInput => write!(f, "empty input"),
+            OsIoError(err) => write!(f, "OS level IO error > {}", err),
+            Self::ParseIntError(err) => write!(f, "error while parsing int > {}", err),
+            InvalidStoredUtf8Character => write!(f, "wrong utf-8 character from the stack"),
+            InvalidUtf8StartByte => write!(f, "read invalid utf-8 start byte"),
         }
     }
 }
@@ -111,9 +117,9 @@ impl std::fmt::Display for RuntimeErrorFlowCtrl {
     }
 }
 
-impl std::fmt::Display for RuntimeErrorHeapAccess {
+impl std::fmt::Display for RuntimeErrorHeap {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        use RuntimeErrorHeapAccess::*;
+        use RuntimeErrorHeap::*;
         match self {
             EmptyStack => write!(f, "empty stackk, unable to store"),
             StackTooSmall => write!(f, "stack too small, unable to find an address to store to"),
@@ -130,10 +136,11 @@ impl std::fmt::Display for RuntimeError {
             StackManip(err) => write!(f, "stack manipulation > {err}"),
             Arithmetic(err) => write!(f, "arithmetic > {err}"),
             FlowCtrl(err) => write!(f, "flow control > {}", err),
-            HeapAccess(err) => write!(f, "heap access > {}", err),
+            Heap(err) => write!(f, "heap > {}", err),
         }
     }
 }
+
 
 impl std::fmt::Debug for RuntimeError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -157,16 +164,29 @@ macro_rules! impl_from_for_runtime_error {
     };
 }
 impl_from_for_runtime_error!(RuntimeErrorIO, IO);
-impl_from_for_runtime_error!(RuntimeErrorHeapAccess, HeapAccess);
+impl_from_for_runtime_error!(RuntimeErrorHeap, Heap);
 impl_from_for_runtime_error!(RuntimeErrorFlowCtrl, FlowCtrl);
 impl_from_for_runtime_error!(RuntimeErrorArithmetic, Arithmetic);
 impl_from_for_runtime_error!(RuntimeErrorStackManip, StackManip);
 
-impl From<RuntimeError> for EngineError {
+impl From<RuntimeError> for EngineErrorKind {
     fn from(value: RuntimeError) -> Self {
         Self::Runtime(value)
     }
 }
+
+impl From<io::Error> for RuntimeErrorIO {
+    fn from(value: io::Error) -> Self {
+        RuntimeErrorIO::OsIoError(value)
+    }
+}
+
+impl From<ParseIntError> for RuntimeErrorIO {
+    fn from(value: ParseIntError) -> Self {
+        RuntimeErrorIO::ParseIntError(value)
+    }
+}
+
 
 ///
 /// TYPE ALIASES
@@ -176,7 +196,7 @@ pub type RuntimeResultIO = Result<RuntimeReport, RuntimeErrorIO>;
 pub type RuntimeResultFlowCtrl = Result<RuntimeReport, RuntimeErrorFlowCtrl>;
 pub type RuntimeResultArithmetic = Result<RuntimeReport, RuntimeErrorArithmetic>;
 pub type RuntimeResultStackManip = Result<RuntimeReport, RuntimeErrorStackManip>;
-pub type RuntimeResultHeapAccess = Result<RuntimeReport, RuntimeErrorHeapAccess>;
+pub type RuntimeResultHeapAccess = Result<RuntimeReport, RuntimeErrorHeap>;
 
 ///
 /// Actual trait

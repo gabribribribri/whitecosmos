@@ -1,12 +1,9 @@
 use std::io;
 
-use crate::{
-    core::handler_errors::EngineError,
-    core::statements::{
+use crate::core::{handler_errors::{EngineErrorKind}, statements::{
         Statement, StatementArithmetic, StatementFlowCtrl, StatementHeapAccess, StatementIO,
         StatementStackManip,
-    },
-};
+    }};
 
 ///
 /// GLOBAL PARSE ERROR
@@ -181,7 +178,7 @@ impl_from_for_parse_error!(ParseErrorFlowCtrl, FlowCtrl);
 impl_from_for_parse_error!(ParseErrorArithmetic, Arithmetic);
 impl_from_for_parse_error!(ParseErrorStackManip, StackManip);
 
-impl From<ParseError> for EngineError {
+impl From<ParseError> for EngineErrorKind {
     fn from(value: ParseError) -> Self {
         Self::Parse(value)
     }
@@ -190,7 +187,6 @@ impl From<ParseError> for EngineError {
 ///
 /// TYPE ALIASES
 ///
-pub type ParseResult = Result<Statement, ParseError>;
 pub type ParseResultIO = Result<StatementIO, ParseErrorIO>;
 pub type ParseResultFlowCtrl = Result<StatementFlowCtrl, ParseErrorFlowCtrl>;
 pub type ParseResultArithmetic = Result<StatementArithmetic, ParseErrorArithmetic>;
@@ -201,7 +197,7 @@ pub type ParseResultHeapAccess = Result<StatementHeapAccess, ParseErrorHeapAcces
 /// Actual trait...
 ///
 pub trait Parser {
-    fn next_statement(&mut self) -> ParseResult;
+    fn next_statement(&mut self) -> Result<Statement, ParseError>;
 }
 
 ///

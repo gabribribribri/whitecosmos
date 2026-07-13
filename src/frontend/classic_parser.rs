@@ -5,9 +5,7 @@ use crate::core::statements::{
     StatementStackManip,
 };
 use crate::frontend::parser::{
-    ParseErrorArithmetic, ParseErrorFlowCtrl, ParseErrorHeapAccess, ParseErrorIO,
-    ParseErrorStackManip, ParseResult, ParseResultArithmetic, ParseResultFlowCtrl,
-    ParseResultHeapAccess, ParseResultIO, ParseResultStackManip, Parser, TokenKind,
+    ParseError, ParseErrorArithmetic, ParseErrorFlowCtrl, ParseErrorHeapAccess, ParseErrorIO, ParseErrorStackManip, ParseResultArithmetic, ParseResultFlowCtrl, ParseResultHeapAccess, ParseResultIO, ParseResultStackManip, Parser, TokenKind
 };
 
 #[derive(Copy, Clone, Debug)]
@@ -24,7 +22,7 @@ pub struct ClassicParser {
 }
 
 impl Parser for ClassicParser {
-    fn next_statement(&mut self) -> ParseResult {
+    fn next_statement(&mut self) -> Result<Statement, ParseError> {
         match self.next_token()? {
             Tab => match self.next_token()? {
                 Tab => Ok(Statement::HeapAccess(self.parse_heap_access()?)),
@@ -46,7 +44,7 @@ impl ClassicParser {
     }
 
     // WARN This does not support UTF-8 at all. There are possibilities to do very very ugly things..........
-    fn next_char(&mut self) -> io::Result<u8> {
+    fn next_byte(&mut self) -> io::Result<u8> {
         let mut buf = [0; 1];
         self.reader.read_exact(&mut buf)?;
         Ok(buf[0])
@@ -62,12 +60,12 @@ impl ClassicParser {
 
     fn next_wws_token(&mut self) -> Result<TokenKind, io::Error> {
         loop {
-            if self.next_char()? != b'[' {
+            if self.next_byte()? != b'[' {
                 continue;
             }
             let mut token_val = [0; 6];
             for i in 0..6 {
-                token_val[i] = self.next_char()?;
+                token_val[i] = self.next_byte()?;
                 if &token_val[..3] == b"LF]" {
                     return Ok(TokenKind::Lf);
                 } else if &token_val[..4] == b"Tab]" {
@@ -85,7 +83,7 @@ impl ClassicParser {
 
     fn next_classic_token(&mut self, lf: u8, tab: u8, space: u8) -> Result<TokenKind, io::Error> {
         loop {
-            let next_char = self.next_char()?;
+            let next_char = self.next_byte()?;
             if next_char == lf {
                 return Ok(TokenKind::Lf);
             } else if next_char == tab {
