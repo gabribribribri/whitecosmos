@@ -3,9 +3,13 @@ use std::{fs::File, path::PathBuf};
 
 use clap::{Parser, Subcommand, ValueEnum};
 use whitecosmos::backend::interpreter::Interpreter;
+use whitecosmos::backend::ir_producer::IrProducer;
+use whitecosmos::backend::runtime::Runtime;
 use whitecosmos::core::handler::Handler;
 use whitecosmos::core::handler_errors::{EngineError, UsageError};
 use whitecosmos::frontend::classic_parser::{FAKE_WS_TOKENS, WS_TOKENS};
+use whitecosmos::frontend::ir_parser::IrParser;
+use whitecosmos::frontend::parser;
 use whitecosmos::frontend::{classic_parser::ClassicParser, classic_parser::ParsedLanguage};
 
 #[derive(Parser)]
@@ -17,28 +21,32 @@ struct Cli {
     filename: Option<PathBuf>,
 
     #[arg(short, long, value_enum)]
-    parser: Option<ParserType>,
+    frontend: Option<FrontendType>,
 
     #[arg(short, long, value_enum)]
-    runtime: Option<RuntimeType>,
+    backend: Option<BackendType>,
 
     #[command(subcommand)]
     subcommand: Option<WhitecosmosSubcommand>,
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
-enum ParserType {
+enum FrontendType {
     #[value(alias = "ws")]
     WhiteSpace,
     #[value(alias = "fws")]
     FakeWhiteSpace,
     #[value(alias = "bws")]
     BracketWhiteSpace,
+    #[value(alias = "iws")]
+    IrWhiteSpace,
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
-enum RuntimeType {
+enum BackendType {
     Direct,
+    #[value(alias = "ir")]
+    Ir
 }
 
 #[derive(Subcommand)]
@@ -74,26 +82,29 @@ fn execute_no_subcommand(cli: Cli) -> Result<(), EngineError> {
     // Figure out which Parser and Runtime to use
     let parser_type = find_parser_type(&cli)?;
 
-    let runtime_type = cli.runtime.unwrap_or(RuntimeType::Direct);
+    let runtime_type = cli.backend.unwrap_or(BackendType::Direct);
 
     let path = cli.filename.unwrap();
     let file = File::open(path)?;
     let reader = Box::new(BufReader::new(file));
 
-    let parser = match parser_type {
-        ParserType::WhiteSpace => Box::new(ClassicParser::new(reader, WS_TOKENS)),
-        ParserType::FakeWhiteSpace => Box::new(ClassicParser::new(reader, FAKE_WS_TOKENS)),
-        ParserType::BracketWhiteSpace => Box::new(ClassicParser::new(
+    let parser: Box<dyn parser::Parser> = match parser_type {
+        FrontendType::WhiteSpace => Box::new(ClassicParser::new(reader, WS_TOKENS)),
+        FrontendType::FakeWhiteSpace => Box::new(ClassicParser::new(reader, FAKE_WS_TOKENS)),
+        FrontendType::BracketWhiteSpace => Box::new(ClassicParser::new(
             reader,
             ParsedLanguage::WrittenWhitespace,
         )),
+        FrontendType::IrWhiteSpace => Box::new(IrParser::new(reader)),
     };
 
-    let runtime = match runtime_type {
-        RuntimeType::Direct => Box::new(Interpreter::new(
+    let runtime: Box<dyn Runtime> = match runtime_type {
+        BackendType::Direct => Box::new(Interpreter::new(
             Box::new(std::io::stdin()),
             Box::new(std::io::stdout()),
         )),
+        // TODO write in something else that stdout
+        BackendType::Ir => Box::new(IrProducer::new(Box::new(std::io::stdout())))
     };
 
     let mut handler = Handler::new(parser, runtime);
@@ -106,18 +117,16 @@ fn execute_with_subcommand(cli: Cli) -> Result<(), UsageError> {
     todo!()
 }
 
-fn find_parser_type(cli: &Cli) -> Result<ParserType, UsageError> {
-    if let Some(argument_provided_parser) = cli.parser {
+fn find_parser_type(cli: &Cli) -> Result<FrontendType, UsageError> {
+    if let Some(argument_provided_parser) = cli.frontend {
         Ok(argument_provided_parser)
     } else if let Some(extension) = cli.filename.clone().unwrap().extension() {
-        if extension == "ws" {
-            Ok(ParserType::WhiteSpace)
-        } else if extension == "fws" {
-            Ok(ParserType::FakeWhiteSpace)
-        } else if extension == "bws" {
-            Ok(ParserType::BracketWhiteSpace)
-        } else {
-            Err(UsageError::UnsupportedFileExtension)
+        match extension.to_str() {
+            Some("ws") => Ok(FrontendType::WhiteSpace),
+            Some("fws") => Ok(FrontendType::FakeWhiteSpace),
+            Some("bws") => Ok(FrontendType::BracketWhiteSpace),
+            Some("iws") => Ok(FrontendType::IrWhiteSpace),
+            _ => Err(UsageError::UnsupportedFileExtension),
         }
     } else {
         return Err(UsageError::UnspecifiedParserType);

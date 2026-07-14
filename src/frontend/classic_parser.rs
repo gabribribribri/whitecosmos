@@ -50,7 +50,7 @@ impl Parser for ClassicParser {
 
 impl ClassicParser {
     pub fn new(reader: Box<dyn Read>, language: ParsedLanguage) -> Self {
-        ClassicParser {
+        Self {
             reader: BufReader::new(reader),
             language,
         }

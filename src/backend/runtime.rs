@@ -7,6 +7,8 @@ use std::{
     string::FromUtf8Error,
 };
 
+use wincode::WriteError;
+
 use crate::core::{handler_errors::EngineErrorKind, statements::Statement};
 
 ///
@@ -31,6 +33,7 @@ pub enum RuntimeError {
     Arithmetic(RuntimeErrorArithmetic),
     FlowCtrl(RuntimeErrorFlowCtrl),
     Heap(RuntimeErrorHeap),
+    IrWriteError(WriteError)
 }
 
 ///
@@ -142,6 +145,7 @@ impl std::fmt::Display for RuntimeError {
             Arithmetic(err) => write!(f, "arithmetic > {err}"),
             FlowCtrl(err) => write!(f, "flow control > {}", err),
             Heap(err) => write!(f, "heap > {}", err),
+            IrWriteError(err) => write!(f, "error while writing intermediate representation > {}", err)
         }
     }
 }

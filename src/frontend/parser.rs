@@ -1,5 +1,7 @@
 use std::io;
 
+use wincode::ReadError;
+
 use crate::core::{
     handler_errors::EngineErrorKind,
     statements::{
@@ -13,6 +15,7 @@ use crate::core::{
 ///
 pub enum ParseError {
     UnexpectedEof,
+    IrReadError(ReadError),
     OsIoError(io::Error),
     IMP(ParseErrorIMP),
     IO(ParseErrorIO),
@@ -128,6 +131,7 @@ impl std::fmt::Display for ParseError {
             HeapAccess(err) => write!(f, "head access > {err}"),
             UnexpectedEof => write!(f, "unexpected end of file"),
             OsIoError(err) => write!(f, "OS level IO error > {}", err),
+            IrReadError(err) => write!(f, "error while reading intermediate representation > {}", err)
         }
     }
 }

@@ -1,7 +1,10 @@
+use serde::{Deserialize, Serialize};
+use wincode::{SchemaRead, SchemaWrite};
+
 ///
 /// GLOBAL STATEMENTS
 ///
-#[derive(Debug, Copy, Clone)]
+#[derive(Serialize, Deserialize, Debug, Copy, Clone, SchemaRead, SchemaWrite)]
 pub enum Statement {
     IO(StatementIO),
     FlowCtrl(StatementFlowCtrl),
@@ -13,7 +16,7 @@ pub enum Statement {
 ///
 /// LOCAL STATEMENTS
 ///
-#[derive(Debug, Copy, Clone)]
+#[derive(Serialize, Deserialize, Debug, Copy, Clone, SchemaRead, SchemaWrite)]
 pub enum StatementStackManip {
     Push(i32),
     DuplicateTopItem,
@@ -23,7 +26,7 @@ pub enum StatementStackManip {
     SlideKeepTopItem(i32),
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Serialize, Deserialize, Debug, Copy, Clone, SchemaRead, SchemaWrite)]
 pub enum StatementFlowCtrl {
     EndProgram,
     MarkLabel(i32),
@@ -34,13 +37,13 @@ pub enum StatementFlowCtrl {
     ReturnFromSubroutine,
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Serialize, Deserialize, Debug, Copy, Clone, SchemaRead, SchemaWrite)]
 pub enum StatementHeapAccess {
     Store,
     Retrieve,
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Serialize, Deserialize, Debug, Copy, Clone, SchemaRead, SchemaWrite)]
 pub enum StatementArithmetic {
     Addition,
     Substraction,
@@ -49,7 +52,7 @@ pub enum StatementArithmetic {
     Modulo,
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Serialize, Deserialize, Debug, Copy, Clone, SchemaRead, SchemaWrite)]
 pub enum StatementIO {
     PopStackOutputNumber,
     PopStackOutputChar,
