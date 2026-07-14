@@ -1,14 +1,19 @@
 use std::io;
 
-use crate::core::{handler_errors::{EngineErrorKind}, statements::{
+use crate::core::{
+    handler_errors::EngineErrorKind,
+    statements::{
         Statement, StatementArithmetic, StatementFlowCtrl, StatementHeapAccess, StatementIO,
         StatementStackManip,
-    }};
+    },
+};
 
 ///
 /// GLOBAL PARSE ERROR
 ///
 pub enum ParseError {
+    UnexpectedEof,
+    OsIoError(io::Error),
     IMP(ParseErrorIMP),
     IO(ParseErrorIO),
     StackManip(ParseErrorStackManip),
@@ -55,7 +60,7 @@ impl std::fmt::Display for ParseErrorIMP {
         use ParseErrorIMP::*;
         match self {
             UnexpectedEOF => write!(f, "unexpected EOF"),
-            OsIoError(err) => write!(f, "OS level IO error > {}", err.to_string()),
+            OsIoError(err) => write!(f, "OS level IO error > {}", err),
         }
     }
 }
@@ -65,7 +70,7 @@ impl std::fmt::Display for ParseErrorIO {
         use ParseErrorIO::*;
         match self {
             ForbiddenLF => write!(f, "[LF] is not a valid command here"),
-            OsIoError(err) => write!(f, "OS level IO error > {}", err.to_string()),
+            OsIoError(err) => write!(f, "OS level IO error > {}", err),
         }
     }
 }
@@ -75,7 +80,7 @@ impl std::fmt::Display for ParseErrorStackManip {
         use ParseErrorStackManip::*;
         match self {
             ForbiddenTab => write!(f, "[Tab] is not a valid command here"),
-            OsIoError(err) => write!(f, "OS level IO error > {}", err.to_string()),
+            OsIoError(err) => write!(f, "OS level IO error > {}", err),
         }
     }
 }
@@ -85,7 +90,7 @@ impl std::fmt::Display for ParseErrorArithmetic {
         use ParseErrorArithmetic::*;
         match self {
             ForbiddenLF => write!(f, "[LF] is not a valid command here"),
-            OsIoError(err) => write!(f, "OS level IO error > {}", err.to_string()),
+            OsIoError(err) => write!(f, "OS level IO error > {}", err),
         }
     }
 }
@@ -96,7 +101,7 @@ impl std::fmt::Display for ParseErrorFlowCtrl {
         match self {
             WrongProgramEnd => write!(f, "wrong program end"),
             ForbiddenLF => write!(f, "[LF] is not a valid command here"),
-            OsIoError(err) => write!(f, "OS level IO error > {}", err.to_string()),
+            OsIoError(err) => write!(f, "OS level IO error > {}", err),
         }
     }
 }
@@ -106,7 +111,7 @@ impl std::fmt::Display for ParseErrorHeapAccess {
         use ParseErrorHeapAccess::*;
         match self {
             ForbiddenLF => write!(f, "[LF] is not a valid command here"),
-            OsIoError(err) => write!(f, "OS level IO error > {}", err.to_string()),
+            OsIoError(err) => write!(f, "OS level IO error > {}", err),
         }
     }
 }
@@ -121,6 +126,8 @@ impl std::fmt::Display for ParseError {
             Arithmetic(err) => write!(f, "arithmetic > {err}"),
             FlowCtrl(err) => write!(f, "flow control > {err}"),
             HeapAccess(err) => write!(f, "head access > {err}"),
+            UnexpectedEof => write!(f, "unexpected end of file"),
+            OsIoError(err) => write!(f, "OS level IO error > {}", err),
         }
     }
 }

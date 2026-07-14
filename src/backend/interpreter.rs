@@ -1,13 +1,13 @@
 use std::{
-    collections::HashMap, io::{ BufRead, BufReader, Read, Write}
+    collections::HashMap,
+    io::{BufRead, BufReader, Read, Write},
 };
 
 use crate::{
     backend::runtime::{
-        Runtime, RuntimeErrorArithmetic, RuntimeErrorFlowCtrl, RuntimeErrorHeap,
-        RuntimeErrorIO, RuntimeErrorStackManip, RuntimeReport, RuntimeResult,
-        RuntimeResultArithmetic, RuntimeResultFlowCtrl, RuntimeResultHeapAccess, RuntimeResultIO,
-        RuntimeResultStackManip,
+        Runtime, RuntimeErrorArithmetic, RuntimeErrorFlowCtrl, RuntimeErrorHeap, RuntimeErrorIO,
+        RuntimeErrorStackManip, RuntimeReport, RuntimeResult, RuntimeResultArithmetic,
+        RuntimeResultFlowCtrl, RuntimeResultHeapAccess, RuntimeResultIO, RuntimeResultStackManip,
     },
     core::statements::{
         Statement, StatementArithmetic, StatementFlowCtrl, StatementHeapAccess, StatementIO,
@@ -243,9 +243,9 @@ impl Interpreter {
     }
 
     fn duplicate_top_stack(&mut self) -> RuntimeResultStackManip {
-        match self.stack.last_mut() {
+        match self.stack.last() {
             Some(val) => {
-                *val *= 2;
+                self.stack.push(*val);
                 Ok(RuntimeReport::Next)
             }
             None => Err(RuntimeErrorStackManip::EmptyStack),

@@ -10,11 +10,16 @@ s.s s:tsts:l
 tlss
 
 s.s s:tssssss:l # PUSH 64 ON STACK
-s.ls
-s.ls
-s.ls
-s.ls
-s.ls
+s.s s:ts:l
+ts.sl
+s.s s:ts:l
+ts.sl
+s.s s:ts:l
+ts.sl
+s.s s:ts:l
+ts.sl
+s.s s:ts:l
+ts.sl
 t.lst # 2048
 
 # LINE FEED

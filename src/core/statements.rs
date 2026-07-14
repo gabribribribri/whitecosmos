@@ -31,7 +31,7 @@ pub enum StatementFlowCtrl {
     JumpToIfZero(i32),
     JumpToIfNegative(i32),
     CallSubroutine(i32),
-    ReturnFromSubroutine
+    ReturnFromSubroutine,
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -54,7 +54,7 @@ pub enum StatementIO {
     PopStackOutputNumber,
     PopStackOutputChar,
     ReadNumberStoreOnHeap,
-    ReadCharStoreOnHeap
+    ReadCharStoreOnHeap,
 }
 
 ///

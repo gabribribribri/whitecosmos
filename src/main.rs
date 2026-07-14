@@ -5,6 +5,7 @@ use clap::{Parser, Subcommand, ValueEnum};
 use whitecosmos::backend::interpreter::Interpreter;
 use whitecosmos::core::handler::Handler;
 use whitecosmos::core::handler_errors::{EngineError, UsageError};
+use whitecosmos::frontend::classic_parser::{FAKE_WS_TOKENS, WS_TOKENS};
 use whitecosmos::frontend::{classic_parser::ClassicParser, classic_parser::ParsedLanguage};
 
 #[derive(Parser)]
@@ -80,22 +81,8 @@ fn execute_no_subcommand(cli: Cli) -> Result<(), EngineError> {
     let reader = Box::new(BufReader::new(file));
 
     let parser = match parser_type {
-        ParserType::WhiteSpace => {
-            let tokens = ParsedLanguage::ClassicWhitespace {
-                lf: b'\n',
-                tab: b'\t',
-                space: b' ',
-            };
-            Box::new(ClassicParser::new(reader, tokens))
-        }
-        ParserType::FakeWhiteSpace => {
-            let tokens = ParsedLanguage::ClassicWhitespace {
-                lf: b'l',
-                tab: b't',
-                space: b's',
-            };
-            Box::new(ClassicParser::new(reader, tokens))
-        }
+        ParserType::WhiteSpace => Box::new(ClassicParser::new(reader, WS_TOKENS)),
+        ParserType::FakeWhiteSpace => Box::new(ClassicParser::new(reader, FAKE_WS_TOKENS)),
         ParserType::BracketWhiteSpace => Box::new(ClassicParser::new(
             reader,
             ParsedLanguage::WrittenWhitespace,

@@ -112,7 +112,10 @@ impl From<UsageError> for EngineError {
 impl std::fmt::Display for EngineError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if let Usage(_) = self.kind {
-            write!(f,"\x1b[1;31merror\x1b[0m while parsing command line arguments :\n")?
+            write!(
+                f,
+                "\x1b[1;31merror\x1b[0m while parsing command line arguments :\n"
+            )?
         } else {
             write!(
                 f,

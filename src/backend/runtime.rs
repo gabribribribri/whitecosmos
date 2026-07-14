@@ -1,8 +1,13 @@
 use std::{
-    cell::RefCell, io::{self, Write}, num::ParseIntError, rc::Rc, str::Utf8Error, string::FromUtf8Error
+    cell::RefCell,
+    io::{self, Write},
+    num::ParseIntError,
+    rc::Rc,
+    str::Utf8Error,
+    string::FromUtf8Error,
 };
 
-use crate::core::{handler_errors::{EngineErrorKind}, statements::Statement};
+use crate::core::{handler_errors::EngineErrorKind, statements::Statement};
 
 ///
 /// RUNTIME
@@ -141,7 +146,6 @@ impl std::fmt::Display for RuntimeError {
     }
 }
 
-
 impl std::fmt::Debug for RuntimeError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self)
@@ -187,7 +191,6 @@ impl From<ParseIntError> for RuntimeErrorIO {
     }
 }
 
-
 ///
 /// TYPE ALIASES
 ///
@@ -215,7 +218,9 @@ pub struct SharedStorage {
 
 impl SharedStorage {
     pub fn new() -> Self {
-        SharedStorage { val: Rc::new(RefCell::new(Vec::new())) }
+        SharedStorage {
+            val: Rc::new(RefCell::new(Vec::new())),
+        }
     }
 
     pub fn data(&self) -> Vec<u8> {

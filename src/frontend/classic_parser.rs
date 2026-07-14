@@ -5,7 +5,20 @@ use crate::core::statements::{
     StatementStackManip,
 };
 use crate::frontend::parser::{
-    ParseError, ParseErrorArithmetic, ParseErrorFlowCtrl, ParseErrorHeapAccess, ParseErrorIO, ParseErrorStackManip, ParseResultArithmetic, ParseResultFlowCtrl, ParseResultHeapAccess, ParseResultIO, ParseResultStackManip, Parser, TokenKind
+    ParseError, ParseErrorArithmetic, ParseErrorFlowCtrl, ParseErrorHeapAccess, ParseErrorIO,
+    ParseErrorStackManip, ParseResultArithmetic, ParseResultFlowCtrl, ParseResultHeapAccess,
+    ParseResultIO, ParseResultStackManip, Parser, TokenKind,
+};
+
+pub const FAKE_WS_TOKENS: ParsedLanguage = ParsedLanguage::ClassicWhitespace {
+    lf: b'l',
+    tab: b't',
+    space: b's',
+};
+pub const WS_TOKENS: ParsedLanguage = ParsedLanguage::ClassicWhitespace {
+    lf: b'\n',
+    tab: b'\t',
+    space: b' ',
 };
 
 #[derive(Copy, Clone, Debug)]
@@ -44,10 +57,17 @@ impl ClassicParser {
     }
 
     // WARN This does not support UTF-8 at all. There are possibilities to do very very ugly things..........
-    fn next_byte(&mut self) -> io::Result<u8> {
+    fn next_byte(&mut self) -> Result<u8, io::Error> {
         let mut buf = [0; 1];
-        self.reader.read_exact(&mut buf)?;
-        Ok(buf[0])
+        match self.reader.read(&mut buf) {
+            Ok(1) => Ok(buf[0]),
+            Ok(0) => Err(io::Error::new(
+                io::ErrorKind::UnexpectedEof,
+                "found end of file before program end instruction",
+            )),
+            Ok(_) => panic!("The buffer is of length 1, how is this possible ?"),
+            Err(e) => Err(e),
+        }
     }
 
     fn next_token(&mut self) -> Result<TokenKind, io::Error> {

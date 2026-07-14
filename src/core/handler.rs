@@ -40,13 +40,19 @@ impl Handler {
 
             let action = match self.runtime.run_statement(statement) {
                 Ok(act) => act,
-                Err(e) => return EngineError::err(stat_index, e),
+                Err(e) => {
+                    // dbg!(&self.statements);
+                    return EngineError::err(stat_index, e);
+                }
             };
 
             match self.handle_runtime_report(action, &mut stat_index) {
                 Ok(false) => return Ok(()),
                 Ok(true) => (),
-                Err(e) => return EngineError::err(stat_index, e),
+                Err(e) => {
+                    // dbg!(&self.statements);
+                    return EngineError::err(stat_index, e);
+                }
             }
 
             stat_index += 1;
@@ -88,7 +94,14 @@ impl Handler {
                     *stat_index = *location;
                     Ok(true)
                 }
-                None => return Err(RuntimeErrorFlowCtrl::LabelNotFound.into()),
+                None => match self.hunt_label(label)? {
+                    Some(location) => {
+                        self.callstack.push(*stat_index);
+                        *stat_index = location;
+                        Ok(true)
+                    }
+                    None => return Err(RuntimeErrorFlowCtrl::LabelNotFound.into()),
+                },
             },
             ReturnFromSubroutine => match self.callstack.last() {
                 Some(location) => {
@@ -114,7 +127,7 @@ impl Handler {
                 _ => (),
             }
         }
-        todo!() // TODO find a way to exit properly
+        Err(ParseError::UnexpectedEof)
     }
 
     fn read_statement(&mut self, stat_index: usize) -> Result<Statement, ParseError> {
