@@ -23,7 +23,7 @@ pub const WS_TOKENS: ParsedLanguage = ParsedLanguage::ClassicWhitespace {
 
 #[derive(Copy, Clone, Debug)]
 pub enum ParsedLanguage {
-    WrittenWhitespace,
+    BracketWhitespace,
     ClassicWhitespace { lf: u8, tab: u8, space: u8 },
 }
 
@@ -73,7 +73,7 @@ impl ClassicParser {
     fn next_token(&mut self) -> Result<TokenKind, io::Error> {
         use ParsedLanguage::*;
         match self.language {
-            WrittenWhitespace => self.next_wws_token(),
+            BracketWhitespace => self.next_wws_token(),
             ClassicWhitespace { lf, tab, space } => self.next_classic_token(lf, tab, space),
         }
     }

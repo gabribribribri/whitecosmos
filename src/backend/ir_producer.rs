@@ -26,7 +26,7 @@ impl Runtime for IrProducer {
 
         match statement {
             Statement::FlowCtrl(StatementFlowCtrl::EndProgram) => {
-                self.writer.flush();
+                _ = self.writer.flush();
                 Ok(RuntimeReport::EndProgram)
             }
             _ => Ok(RuntimeReport::Next),

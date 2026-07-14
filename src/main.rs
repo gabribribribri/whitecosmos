@@ -1,16 +1,19 @@
-use std::io::BufReader;
+use std::io::{BufReader, Read, Write};
 use std::{fs::File, path::PathBuf};
 
 use clap::{Parser, Subcommand, ValueEnum};
-use whitecosmos::backend::interpreter::Interpreter;
-use whitecosmos::backend::ir_producer::IrProducer;
-use whitecosmos::backend::runtime::Runtime;
-use whitecosmos::core::handler::Handler;
-use whitecosmos::core::handler_errors::{EngineError, UsageError};
-use whitecosmos::frontend::classic_parser::{FAKE_WS_TOKENS, WS_TOKENS};
-use whitecosmos::frontend::ir_parser::IrParser;
-use whitecosmos::frontend::parser;
-use whitecosmos::frontend::{classic_parser::ClassicParser, classic_parser::ParsedLanguage};
+use whitecosmos::{
+    backend::{interpreter::Interpreter, ir_producer::IrProducer, runtime::Runtime},
+    core::{
+        handler::Handler,
+        handler_errors::{EngineError, UsageError},
+    },
+    frontend::{
+        classic_parser::{ClassicParser, FAKE_WS_TOKENS, ParsedLanguage, WS_TOKENS},
+        ir_parser::IrParser,
+        parser,
+    },
+};
 
 #[derive(Parser)]
 #[command(name = "whitecosmos")]
@@ -28,6 +31,12 @@ struct Cli {
 
     #[command(subcommand)]
     subcommand: Option<WhitecosmosSubcommand>,
+
+    #[arg(short, long, value_enum)]
+    input: Option<PathBuf>,
+
+    #[arg(short, long, value_enum)]
+    output: Option<PathBuf>,
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
@@ -45,8 +54,8 @@ enum FrontendType {
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
 enum BackendType {
     Direct,
-    #[value(alias = "ir")]
-    Ir
+    // #[value(alias = "ir")]
+    Ir,
 }
 
 #[derive(Subcommand)]
@@ -80,38 +89,44 @@ fn main() {
 
 fn execute_no_subcommand(cli: Cli) -> Result<(), EngineError> {
     // Figure out which Parser and Runtime to use
-    let parser_type = find_parser_type(&cli)?;
+    let frontend_type = find_parser_type(&cli)?;
 
-    let runtime_type = cli.backend.unwrap_or(BackendType::Direct);
+    let backend_type = cli.backend.unwrap_or(BackendType::Direct);
 
     let path = cli.filename.unwrap();
     let file = File::open(path)?;
     let reader = Box::new(BufReader::new(file));
 
-    let parser: Box<dyn parser::Parser> = match parser_type {
+    let input: Box<dyn Read> = match cli.input {
+        Some(path) => Box::new(File::open(path)?),
+        None => Box::new(std::io::stdin()),
+    };
+
+    let output: Box<dyn Write> = match cli.output {
+        Some(path) => Box::new(File::create(path)?),
+        None => Box::new(std::io::stdout()),
+    };
+
+    let parser: Box<dyn parser::Parser> = match frontend_type {
         FrontendType::WhiteSpace => Box::new(ClassicParser::new(reader, WS_TOKENS)),
         FrontendType::FakeWhiteSpace => Box::new(ClassicParser::new(reader, FAKE_WS_TOKENS)),
         FrontendType::BracketWhiteSpace => Box::new(ClassicParser::new(
             reader,
-            ParsedLanguage::WrittenWhitespace,
+            ParsedLanguage::BracketWhitespace,
         )),
         FrontendType::IrWhiteSpace => Box::new(IrParser::new(reader)),
     };
 
-    let runtime: Box<dyn Runtime> = match runtime_type {
-        BackendType::Direct => Box::new(Interpreter::new(
-            Box::new(std::io::stdin()),
-            Box::new(std::io::stdout()),
-        )),
-        // TODO write in something else that stdout
-        BackendType::Ir => Box::new(IrProducer::new(Box::new(std::io::stdout())))
+    let runtime: Box<dyn Runtime> = match backend_type {
+        BackendType::Direct => Box::new(Interpreter::new(input, output)),
+        BackendType::Ir => Box::new(IrProducer::new(output)),
     };
 
     let mut handler = Handler::new(parser, runtime);
-
     handler.run()
 }
 
+#[allow(unused)] // TODO remove
 fn execute_with_subcommand(cli: Cli) -> Result<(), UsageError> {
     // this will be interesting
     todo!()
@@ -121,11 +136,12 @@ fn find_parser_type(cli: &Cli) -> Result<FrontendType, UsageError> {
     if let Some(argument_provided_parser) = cli.frontend {
         Ok(argument_provided_parser)
     } else if let Some(extension) = cli.filename.clone().unwrap().extension() {
-        match extension.to_str() {
-            Some("ws") => Ok(FrontendType::WhiteSpace),
-            Some("fws") => Ok(FrontendType::FakeWhiteSpace),
-            Some("bws") => Ok(FrontendType::BracketWhiteSpace),
-            Some("iws") => Ok(FrontendType::IrWhiteSpace),
+        // maybe unwrap here is not a good idea ?
+        match extension.to_str().unwrap() {
+            "ws" => Ok(FrontendType::WhiteSpace),
+            "fws" => Ok(FrontendType::FakeWhiteSpace),
+            "bws" => Ok(FrontendType::BracketWhiteSpace),
+            "iws" => Ok(FrontendType::IrWhiteSpace),
             _ => Err(UsageError::UnsupportedFileExtension),
         }
     } else {
